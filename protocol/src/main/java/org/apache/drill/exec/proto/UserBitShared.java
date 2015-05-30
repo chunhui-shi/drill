@@ -487,6 +487,10 @@ public final class UserBitShared {
      * <code>AVRO_SUB_SCAN = 36;</code>
      */
     AVRO_SUB_SCAN(36, 36),
+    /**
+     * <code>ELASTICSEARCH_SUB_SCAN</code>
+     */
+    ELASTICSEARCH_SUB_SCAN(37, 37)
     ;
 
     /**
@@ -637,6 +641,10 @@ public final class UserBitShared {
      * <code>AVRO_SUB_SCAN = 36;</code>
      */
     public static final int AVRO_SUB_SCAN_VALUE = 36;
+    /**
+     * <code>ELASTICSEARCH_SUB_SCAN = 37</code>
+     */
+    public static final int ELASTICSEARCH_SUB_SCAN_VALUE = 37;
 
 
     public final int getNumber() { return value; }

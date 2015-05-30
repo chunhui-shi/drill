@@ -1,0 +1,14 @@
+{
+  "storage":{
+    elasticsearch : {
+      type:"elasticsearch",
+      enabled: false,
+      config : {
+        "elasticsearch.config.hosts"          : "127.0.0.1:9300",
+        "elasticsearch.config.cluster"        : "elasticsearch",
+        "elasticsearch.config.batch.size"     : "1000",
+        "elasticsearch.config.scroll.timeout" : "60000"
+      }
+    }
+  }
+}
