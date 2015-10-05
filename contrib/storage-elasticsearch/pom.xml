@@ -30,7 +30,7 @@
     <name>contrib/elasticsearch-storage-plugin</name>
 
     <properties>
-        <elasticsearch.version>2.0.0-beta1-SNAPSHOT</elasticsearch.version>
+        <elasticsearch.version>2.0.0.beta1-SNAPSHOT</elasticsearch.version>
         <hamcrest.version>1.3</hamcrest.version>
         <carrotsearch.testframework>2.1.16</carrotsearch.testframework>
 
