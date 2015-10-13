@@ -48,7 +48,7 @@ public class HBaseFilterBuilder extends AbstractExprVisitor<HBaseScanSpec, Void,
 
   private static Boolean nullComparatorSupported = null;
 
-  HBaseFilterBuilder(HBaseGroupScan groupScan, LogicalExpression le) {
+  public HBaseFilterBuilder(HBaseGroupScan groupScan, LogicalExpression le) {
     this.groupScan = groupScan;
     this.le = le;
   }

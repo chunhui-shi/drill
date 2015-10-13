@@ -233,7 +233,7 @@ public class ElasticsearchRecordReader extends AbstractRecordReader {
     }
 
     @Override
-    public void cleanup() {
+    public void close() {
         logger.debug("Cleaning up reader for: [{}.{}:{}]", schema, table, getColumns());
     }
 
