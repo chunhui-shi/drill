@@ -20,50 +20,33 @@ package org.apache.drill.exec.planner.index;
 import java.util.List;
 
 import org.apache.calcite.rex.RexNode;
-import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.physical.base.AbstractGroupScan;
+import org.apache.drill.exec.planner.physical.PlannerSettings;
+import org.apache.drill.exec.planner.physical.ScanPrel;
+import org.apache.drill.exec.store.hbase.HBaseGroupScan;
 
+// Interface used to describe an index
+public class HBaseSecondaryIndexDescriptor extends AbstractIndexDescriptor {
+  private static final double DEFAULT_SELECTIVITY = 0.01;
 
-/**
- * Abstract base class for Index descriptors
- *
- */
-public abstract class AbstractIndexDescriptor implements IndexDescriptor {
+  private final HBaseGroupScan hbscan;
 
-  protected final List<SchemaPath> indexColumns;
-
-  public AbstractIndexDescriptor(List<SchemaPath> cols) {
-    indexColumns = cols;
-  }
-
-  @Override
-  public Integer getIdIfValid(String name) {
-    SchemaPath schemaPath = SchemaPath.getSimplePath(name);
-    int id = indexColumns.indexOf(schemaPath);
-    if (id == -1) {
-      return null;
-    }
-    return id;
+  public HBaseSecondaryIndexDescriptor(PlannerSettings settings, ScanPrel scanPrel) {
+    super(((HBaseGroupScan)scanPrel.getGroupScan()).getSecondaryIndexColumns());
+    hbscan = (HBaseGroupScan)scanPrel.getGroupScan();
   }
 
   @Override
   public double getRows(RexNode indexCondition) {
-    throw new UnsupportedOperationException("getRows() not supported for this index.");
-  }
-
-  @Override
-  public boolean supportsRowCountStats() {
-    return false;
+    // TODO: Use the Elasticsearch COUNT API to compute the selectivity of the predicate
+    // return row count based on default selectivity for now;
+    return DEFAULT_SELECTIVITY * hbscan.getScanStats().getRecordCount();
   }
 
   @Override
   public AbstractGroupScan getIndexGroupScan() {
-    throw new UnsupportedOperationException("Group scan not supported for this index.");
-  }
-
-  @Override
-  public boolean supportsFullTextSearch() {
-    return false;
+    // TODO Auto-generated method stub
+    return null;
   }
 
 }

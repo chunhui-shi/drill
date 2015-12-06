@@ -17,14 +17,44 @@
  */
 package org.apache.drill.exec.planner.index;
 
+import java.util.List;
+
+import org.apache.calcite.rex.RexNode;
+import org.apache.drill.exec.physical.base.AbstractGroupScan;
+
 // Interface used to describe an index
 public interface IndexDescriptor {
 
   /**
    * Check to see if the name is an index column
    * @param name The field name you want to compare to index names.
-   * @return Return index if valid, otherwise return null;
+   * @return Return index of the indexed column if valid, otherwise return null;
    */
   public Integer getIdIfValid(String name);
+
+  /**
+   * Get the estimated row count for a single index condition
+   * @param indexCondition The index condition (e.g index_col1 < 10 AND index_col2 = 'abc')
+   * @return The estimated row count
+   */
+  public double getRows(RexNode indexCondition);
+
+  /**
+   * Whether or not the index supports getting row count statistics
+   * @return True if index supports getting row count, False otherwise
+   */
+  public boolean supportsRowCountStats();
+
+  /**
+   * Get an instance of the group scan associated with this index descriptor
+   * @return An instance of group scan for this index
+   */
+  public AbstractGroupScan getIndexGroupScan();
+
+  /**
+   * Whether or not the index supports full-text search (to allow pushing down such filters)
+   * @return True if index supports full-text search, False otherwise
+   */
+  public boolean supportsFullTextSearch();
 
 }

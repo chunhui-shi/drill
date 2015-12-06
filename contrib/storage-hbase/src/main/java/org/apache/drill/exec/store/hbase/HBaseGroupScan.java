@@ -101,10 +101,10 @@ public class HBaseGroupScan extends AbstractNoSqlDbGroupScan implements DrillHBa
 
   @JsonCreator
   public HBaseGroupScan(@JsonProperty("userName") String userName,
-                        @JsonProperty("hbaseScanSpec") HBaseScanSpec hbaseScanSpec,
-                        @JsonProperty("storage") HBaseStoragePluginConfig storagePluginConfig,
-                        @JsonProperty("columns") List<SchemaPath> columns,
-                        @JacksonInject StoragePluginRegistry pluginRegistry) throws IOException, ExecutionSetupException {
+      @JsonProperty("hbaseScanSpec") HBaseScanSpec hbaseScanSpec,
+      @JsonProperty("storage") HBaseStoragePluginConfig storagePluginConfig,
+      @JsonProperty("columns") List<SchemaPath> columns,
+      @JacksonInject StoragePluginRegistry pluginRegistry) throws IOException, ExecutionSetupException {
     this (userName, (HBaseStoragePlugin) pluginRegistry.getPlugin(storagePluginConfig), hbaseScanSpec, columns);
   }
 
@@ -329,11 +329,11 @@ public class HBaseGroupScan extends AbstractNoSqlDbGroupScan implements DrillHBa
   private HBaseSubScanSpec regionInfoToSubScanSpec(HRegionInfo ri) {
     HBaseScanSpec spec = hbaseScanSpec;
     return new HBaseSubScanSpec()
-        .setTableName(spec.getTableName())
-        .setRegionServer(regionsToScan.get(ri).getHostname())
-        .setStartRow((!isNullOrEmpty(spec.getStartRow()) && ri.containsRow(spec.getStartRow())) ? spec.getStartRow() : ri.getStartKey())
-        .setStopRow((!isNullOrEmpty(spec.getStopRow()) && ri.containsRow(spec.getStopRow())) ? spec.getStopRow() : ri.getEndKey())
-        .setSerializedFilter(spec.getSerializedFilter());
+    .setTableName(spec.getTableName())
+    .setRegionServer(regionsToScan.get(ri).getHostname())
+    .setStartRow((!isNullOrEmpty(spec.getStartRow()) && ri.containsRow(spec.getStartRow())) ? spec.getStartRow() : ri.getStartKey())
+    .setStopRow((!isNullOrEmpty(spec.getStopRow()) && ri.containsRow(spec.getStopRow())) ? spec.getStopRow() : ri.getEndKey())
+    .setSerializedFilter(spec.getSerializedFilter());
   }
 
   private boolean isNullOrEmpty(byte[] key) {
