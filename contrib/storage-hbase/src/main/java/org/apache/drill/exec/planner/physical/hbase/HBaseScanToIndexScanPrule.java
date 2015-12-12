@@ -75,8 +75,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 
-import org.apache.drill.exec.store.elasticsearch.ElasticsearchGroupScan;
-import org.apache.drill.exec.store.elasticsearch.ElasticsearchStoragePlugin;
+// import org.apache.drill.exec.store.elasticsearch.ElasticsearchGroupScan;
+// import org.apache.drill.exec.store.elasticsearch.ElasticsearchStoragePlugin;
 
 public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRule {
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(HBaseScanToIndexScanPrule.class);

@@ -17,30 +17,39 @@
  */
 package org.apache.drill.exec.planner.index;
 
-import java.util.List;
-
 import org.apache.calcite.rex.RexNode;
 import org.apache.drill.exec.physical.base.AbstractGroupScan;
 import org.apache.drill.exec.planner.physical.PlannerSettings;
 import org.apache.drill.exec.planner.physical.ScanPrel;
 import org.apache.drill.exec.store.hbase.HBaseGroupScan;
+import org.apache.drill.exec.store.elasticsearch.ElasticsearchStoragePluginConfig;
+import org.apache.drill.exec.store.elasticsearch.rules.CountWrapper;
 
-// Interface used to describe an index
 public class HBaseSecondaryIndexDescriptor extends AbstractIndexDescriptor {
   private static final double DEFAULT_SELECTIVITY = 0.01;
 
-  private final HBaseGroupScan hbscan;
+  private final ScanPrel scanPrel;
+  private final ElasticsearchStoragePluginConfig esConfig;
+  private final String indexName;
 
-  public HBaseSecondaryIndexDescriptor(PlannerSettings settings, ScanPrel scanPrel) {
+  public HBaseSecondaryIndexDescriptor(PlannerSettings settings, ScanPrel scanPrel,
+      String indexName,
+      ElasticsearchStoragePluginConfig esConfig) {
     super(((HBaseGroupScan)scanPrel.getGroupScan()).getSecondaryIndexColumns());
-    hbscan = (HBaseGroupScan)scanPrel.getGroupScan();
+    this.scanPrel = scanPrel;
+    this.indexName = indexName;
+    this.esConfig = esConfig;
   }
 
   @Override
   public double getRows(RexNode indexCondition) {
     // TODO: Use the Elasticsearch COUNT API to compute the selectivity of the predicate
     // return row count based on default selectivity for now;
-    return DEFAULT_SELECTIVITY * hbscan.getScanStats().getRecordCount();
+    HBaseGroupScan hbscan = (HBaseGroupScan)scanPrel.getGroupScan();
+    //     return DEFAULT_SELECTIVITY * hbscan.getScanStats().getRecordCount();
+
+    // Call the wrapper for creating a COUNT query
+    return CountWrapper.getCount(scanPrel, indexCondition, indexName, esConfig);
   }
 
   @Override
