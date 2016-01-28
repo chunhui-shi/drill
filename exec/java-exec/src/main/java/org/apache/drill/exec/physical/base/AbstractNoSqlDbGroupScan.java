@@ -35,7 +35,12 @@ public abstract class AbstractNoSqlDbGroupScan extends AbstractGroupScan impleme
   }
 
   @Override
-  public boolean supportsSecondaryIndex() {
+  public boolean supportsExternalSecondaryIndex() {
+    return false;
+  }
+
+  @Override
+  public boolean supportsNativeSecondaryIndex() {
     return false;
   }
 

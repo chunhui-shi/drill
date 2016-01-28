@@ -59,7 +59,7 @@ import org.apache.drill.exec.store.StoragePluginOptimizerRule;
 import org.apache.drill.exec.store.hbase.HBaseFilterBuilder;
 import org.apache.drill.exec.store.hbase.HBaseGroupScan;
 import org.apache.drill.exec.store.hbase.HBaseScanSpec;
-import org.apache.drill.exec.planner.index.HBaseSecondaryIndexDescriptor;
+import org.apache.drill.exec.planner.index.HBaseESIndexDescriptor;
 import org.apache.drill.exec.planner.index.IndexDescriptor;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
@@ -103,14 +103,19 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
 
       @Override
       public IndexDescriptor getIndexDescriptor(PlannerSettings settings, ScanPrel scan) {
-        return new HBaseSecondaryIndexDescriptor(settings, scan);
+        return new HBaseESIndexDescriptor(settings, scan);
       }
 
       @Override
       public boolean matches(RelOptRuleCall call) {
         final ScanPrel scan = (ScanPrel) call.rel(2);
         GroupScan groupScan = scan.getGroupScan();
-        return groupScan instanceof HBaseGroupScan && ((HBaseGroupScan)groupScan).supportsSecondaryIndex();
+        if (groupScan instanceof HBaseGroupScan) {
+          HBaseGroupScan hbscan = ((HBaseGroupScan)groupScan);
+          return hbscan.supportsExternalSecondaryIndex() ||
+              hbscan.supportsNativeSecondaryIndex();
+        }
+        return false;
       }
 
       @Override
@@ -130,14 +135,19 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
 
       @Override
       public IndexDescriptor getIndexDescriptor(PlannerSettings settings, ScanPrel scan) {
-        return new HBaseSecondaryIndexDescriptor(settings, scan);
+        return new HBaseESIndexDescriptor(settings, scan);
       }
 
       @Override
       public boolean matches(RelOptRuleCall call) {
         final ScanPrel scan = (ScanPrel) call.rel(1);
         GroupScan groupScan = scan.getGroupScan();
-        return groupScan instanceof HBaseGroupScan && ((HBaseGroupScan)groupScan).supportsSecondaryIndex();
+        if (groupScan instanceof HBaseGroupScan) {
+          HBaseGroupScan hbscan = ((HBaseGroupScan)groupScan);
+          return hbscan.supportsExternalSecondaryIndex() ||
+              hbscan.supportsNativeSecondaryIndex();
+        }
+        return false;
       }
 
       @Override
@@ -206,7 +216,7 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
     Map<Integer, String> fieldNameMap = Maps.newHashMap();
     List<String> fieldNames = scan.getRowType().getFieldNames();
     BitSet indexColumnBitSet = new BitSet();
-    BitSet columnBitSet = new BitSet();
+    //    BitSet columnBitSet = new BitSet();
 
     int relColIndex = 0; // index into the rowtype for the indexed columns
     for (String field : fieldNames) {
@@ -214,7 +224,7 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
       if (indexColIndex != null) {
         fieldNameMap.put(indexColIndex, field);
         indexColumnBitSet.set(indexColIndex);
-        columnBitSet.set(relColIndex);
+        //        columnBitSet.set(relColIndex);
       }
       relColIndex++;
     }

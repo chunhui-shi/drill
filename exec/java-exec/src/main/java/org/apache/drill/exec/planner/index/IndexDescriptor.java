@@ -24,6 +24,14 @@ import org.apache.drill.exec.physical.base.AbstractGroupScan;
 
 // Interface used to describe an index
 public interface IndexDescriptor {
+  /**
+   * Types of an index: PRIMARY_KEY_INDEX, NATIVE_SECONDARY_INDEX, EXTERNAL_SECONDARY_INDEX
+   */
+  public static enum IndexType {
+    PRIMARY_KEY_INDEX,
+    NATIVE_SECONDARY_INDEX,
+    EXTERNAL_SECONDARY_INDEX
+  };
 
   /**
    * Check to see if the name is an index column
@@ -31,6 +39,12 @@ public interface IndexDescriptor {
    * @return Return index of the indexed column if valid, otherwise return null;
    */
   public Integer getIdIfValid(String name);
+
+  /**
+   * Get the type of this index based on {@link IndexType}
+   * @return one of the values in {@link IndexType}
+   */
+  public IndexType getIndexType();
 
   /**
    * Get the estimated row count for a single index condition

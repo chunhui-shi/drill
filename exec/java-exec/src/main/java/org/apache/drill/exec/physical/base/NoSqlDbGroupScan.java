@@ -29,9 +29,14 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 public interface NoSqlDbGroupScan {
 
   /**
-   * Whether or not this NoSqlDbGroupScan supports secondary indexes
+   * Whether or not this NoSqlDbGroupScan supports external secondary indexes
    */
-  public boolean supportsSecondaryIndex();
+  public boolean supportsExternalSecondaryIndex();
+
+  /**
+   * Whether or not this NoSqlDbGroupScan supports native secondary indexes
+   */
+  public boolean supportsNativeSecondaryIndex();
 
   /**
    * Returns a list of columns that can be used for secondary index based lookup

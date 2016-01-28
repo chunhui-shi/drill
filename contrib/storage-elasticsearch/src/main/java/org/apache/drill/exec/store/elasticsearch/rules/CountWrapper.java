@@ -38,7 +38,7 @@ public class CountWrapper {
       count = cb.get().getCount();
 
     } catch (ExpressionNotAnalyzableException e) {
-      logger.warn("Encountered exception: ", e);
+      logger.warn("Encountered exception while getting COUNT: ", e);
     }
 
     return count;

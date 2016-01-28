@@ -37,8 +37,8 @@ public abstract class AbstractIndexDescriptor implements IndexDescriptor {
   }
 
   @Override
-  public Integer getIdIfValid(String name) {
-    SchemaPath schemaPath = SchemaPath.getSimplePath(name);
+  public Integer getIdIfValid(String fieldName) {
+    SchemaPath schemaPath = SchemaPath.getSimplePath(fieldName);
     int id = indexColumns.indexOf(schemaPath);
     if (id == -1) {
       return null;
