@@ -17,9 +17,7 @@
  */
 package org.apache.drill.exec.physical.base;
 
-import java.util.List;
-
-import org.apache.drill.common.expression.SchemaPath;
+import org.apache.drill.exec.planner.index.IndexCollection;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
@@ -28,21 +26,14 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
  */
 public interface NoSqlDbGroupScan {
 
-  /**
-   * Whether or not this NoSqlDbGroupScan supports external secondary indexes
-   */
-  public boolean supportsExternalSecondaryIndex();
+  @JsonIgnore
+  public boolean supportsSecondaryIndex();
 
   /**
-   * Whether or not this NoSqlDbGroupScan supports native secondary indexes
-   */
-  public boolean supportsNativeSecondaryIndex();
-
-  /**
-   * Returns a list of columns that can be used for secondary index based lookup
+   * Get the index collection associated with this table if any
    *
    */
   @JsonIgnore
-  public List<SchemaPath> getSecondaryIndexColumns();
+  public IndexCollection getSecondaryIndexCollection();
 
 }

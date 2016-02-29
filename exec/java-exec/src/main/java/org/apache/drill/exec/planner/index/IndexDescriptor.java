@@ -20,7 +20,8 @@ package org.apache.drill.exec.planner.index;
 import java.util.List;
 
 import org.apache.calcite.rex.RexNode;
-import org.apache.drill.exec.physical.base.AbstractGroupScan;
+import org.apache.drill.common.expression.SchemaPath;
+import org.apache.drill.exec.physical.base.GroupScan;
 
 // Interface used to describe an index
 public interface IndexDescriptor {
@@ -34,11 +35,28 @@ public interface IndexDescriptor {
   };
 
   /**
-   * Check to see if the name is an index column
-   * @param name The field name you want to compare to index names.
-   * @return Return index of the indexed column if valid, otherwise return null;
+   * Check to see if the field name is an index column and if so return the ordinal position in the index
+   * @param fieldName The field name you want to compare to index column names.
+   * @return Return ordinal of the indexed column if valid, otherwise return -1
    */
-  public Integer getIdIfValid(String name);
+  public int getIndexColumnOrdinal(String fieldName);
+
+  /**
+   * Get the name of the index
+   */
+  public String getIndexName();
+
+  /**
+   * Check if this index 'covers' all the columns specified in the supplied list of columns
+   * @param columns
+   * @return True for covering index, False for non-covering
+   */
+  public boolean isCoveringIndex(List<SchemaPath> columns);
+
+  /**
+   * Get the name of the table this index is associated with
+   */
+  public String getTableName();
 
   /**
    * Get the type of this index based on {@link IndexType}
@@ -63,7 +81,7 @@ public interface IndexDescriptor {
    * Get an instance of the group scan associated with this index descriptor
    * @return An instance of group scan for this index
    */
-  public AbstractGroupScan getIndexGroupScan();
+  public GroupScan getIndexGroupScan();
 
   /**
    * Whether or not the index supports full-text search (to allow pushing down such filters)

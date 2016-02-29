@@ -17,11 +17,7 @@
  */
 package org.apache.drill.exec.physical.base;
 
-import java.util.List;
-
-import org.apache.drill.common.expression.SchemaPath;
-
-import com.beust.jcommander.internal.Lists;
+import org.apache.drill.exec.planner.index.IndexCollection;
 
 public abstract class AbstractNoSqlDbGroupScan extends AbstractGroupScan implements NoSqlDbGroupScan {
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AbstractNoSqlDbGroupScan.class);
@@ -35,18 +31,13 @@ public abstract class AbstractNoSqlDbGroupScan extends AbstractGroupScan impleme
   }
 
   @Override
-  public boolean supportsExternalSecondaryIndex() {
+  public boolean supportsSecondaryIndex() {
     return false;
   }
 
   @Override
-  public boolean supportsNativeSecondaryIndex() {
-    return false;
-  }
-
-  @Override
-  public List<SchemaPath> getSecondaryIndexColumns() {
-    return Lists.newArrayList();
+  public IndexCollection getSecondaryIndexCollection() {
+    return null;
   }
 
 }

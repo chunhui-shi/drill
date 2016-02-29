@@ -20,50 +20,35 @@ package org.apache.drill.exec.planner.physical.hbase;
 
 import java.util.BitSet;
 import java.util.List;
-import java.util.Map;
 
-import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptRule;
 import org.apache.calcite.plan.RelOptRuleOperand;
 import org.apache.calcite.plan.RelOptUtil;
 import org.apache.calcite.plan.RelTraitSet;
-import org.apache.drill.common.expression.LogicalExpression;
-import org.apache.drill.exec.memory.BufferAllocator;
+import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.ops.OptimizerRulesContext;
-import org.apache.drill.exec.physical.base.AbstractGroupScan;
-import org.apache.drill.exec.physical.base.FileGroupScan;
 import org.apache.drill.exec.physical.base.GroupScan;
-import org.apache.drill.exec.planner.FileSystemPartitionDescriptor;
-import org.apache.drill.exec.planner.PartitionDescriptor;
-import org.apache.drill.exec.planner.logical.DrillFilterRel;
-import org.apache.drill.exec.planner.logical.DrillJoinRel;
-import org.apache.drill.exec.planner.logical.DrillOptiq;
-import org.apache.drill.exec.planner.logical.DrillParseContext;
-import org.apache.drill.exec.planner.logical.DrillProjectRel;
-import org.apache.drill.exec.planner.logical.DrillScanRel;
 import org.apache.drill.exec.planner.logical.RelOptHelper;
 import org.apache.drill.exec.planner.logical.partition.FindPartitionConditions;
-import org.apache.drill.exec.planner.logical.partition.PruneScanRule;
 import org.apache.drill.exec.planner.logical.partition.RewriteAsBinaryOperators;
 import org.apache.drill.exec.planner.logical.partition.RewriteCombineBinaryOperators;
 import org.apache.drill.exec.planner.physical.DrillDistributionTrait;
 import org.apache.drill.exec.planner.physical.FilterPrel;
 import org.apache.drill.exec.planner.physical.HashJoinPrel;
-import org.apache.drill.exec.planner.physical.HashJoinPrule;
 import org.apache.drill.exec.planner.physical.PlannerSettings;
 import org.apache.drill.exec.planner.physical.Prel;
 import org.apache.drill.exec.planner.physical.PrelUtil;
 import org.apache.drill.exec.planner.physical.ProjectPrel;
 import org.apache.drill.exec.planner.physical.ScanPrel;
+import org.apache.drill.exec.planner.physical.SubsetTransformer;
 import org.apache.drill.exec.store.StoragePluginOptimizerRule;
-import org.apache.drill.exec.store.hbase.HBaseFilterBuilder;
+import org.apache.drill.exec.store.hbase.DrillHBaseConstants;
 import org.apache.drill.exec.store.hbase.HBaseGroupScan;
-import org.apache.drill.exec.store.hbase.HBaseScanSpec;
-import org.apache.drill.exec.planner.index.HBaseESIndexDescriptor;
+import org.apache.drill.exec.planner.index.IndexCollection;
 import org.apache.drill.exec.planner.index.IndexDescriptor;
+import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rel.type.RelDataType;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -71,9 +56,7 @@ import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.rex.RexUtil;
 import org.apache.calcite.sql.fun.SqlStdOperatorTable;
 
-import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.google.common.collect.Maps;
 
 // import org.apache.drill.exec.store.elasticsearch.ElasticsearchGroupScan;
 // import org.apache.drill.exec.store.elasticsearch.ElasticsearchStoragePlugin;
@@ -86,7 +69,12 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
    */
   static final double INDEX_SELECTIVITY_THRESHOLD = 0.1;
 
-  public abstract IndexDescriptor getIndexDescriptor(PlannerSettings settings, ScanPrel scan);
+  /**
+   * Return the index collection relevant for the underlying data source
+   * @param settings
+   * @param scan
+   */
+  public abstract IndexCollection getIndexCollection(PlannerSettings settings, ScanPrel scan);
 
   final OptimizerRulesContext optimizerContext;
 
@@ -102,8 +90,9 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
         optimizerRulesContext) {
 
       @Override
-      public IndexDescriptor getIndexDescriptor(PlannerSettings settings, ScanPrel scan) {
-        return new HBaseESIndexDescriptor(settings, scan);
+      public IndexCollection getIndexCollection(PlannerSettings settings, ScanPrel scan) {
+        HBaseGroupScan groupScan = (HBaseGroupScan)scan.getGroupScan();
+        return groupScan.getSecondaryIndexCollection();
       }
 
       @Override
@@ -112,8 +101,7 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
         GroupScan groupScan = scan.getGroupScan();
         if (groupScan instanceof HBaseGroupScan) {
           HBaseGroupScan hbscan = ((HBaseGroupScan)groupScan);
-          return hbscan.supportsExternalSecondaryIndex() ||
-              hbscan.supportsNativeSecondaryIndex();
+          return hbscan.supportsSecondaryIndex();
         }
         return false;
       }
@@ -134,8 +122,9 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
         "HBaseScanToIndexScanPrule:Filter_On_Scan", optimizerRulesContext) {
 
       @Override
-      public IndexDescriptor getIndexDescriptor(PlannerSettings settings, ScanPrel scan) {
-        return new HBaseESIndexDescriptor(settings, scan);
+      public IndexCollection getIndexCollection(PlannerSettings settings, ScanPrel scan) {
+        HBaseGroupScan groupScan = (HBaseGroupScan)scan.getGroupScan();
+        return groupScan.getSecondaryIndexCollection();
       }
 
       @Override
@@ -144,8 +133,7 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
         GroupScan groupScan = scan.getGroupScan();
         if (groupScan instanceof HBaseGroupScan) {
           HBaseGroupScan hbscan = ((HBaseGroupScan)groupScan);
-          return hbscan.supportsExternalSecondaryIndex() ||
-              hbscan.supportsNativeSecondaryIndex();
+          return hbscan.supportsSecondaryIndex();
         }
         return false;
       }
@@ -181,25 +169,11 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
    * This plan will be further optimized by the ElasticSearch storage optimizer rule
    * where the Filter with index columns will be pushed into the ESGroupScan
    *
-   * A better Plan:
-   *
-   *            Filter (original filter minus filters on index cols)
-   *               |
-   *            RowkeyJoin
-   *          /      \
-   *         /        HBaseGroupScan
-   *     Filter
-   * (with index cols only)
-   *       |
-   *  ESGroupScan
-   *
-   *
    */
 
   protected void doOnMatch(RelOptRuleCall call, FilterPrel filter, ProjectPrel project, ScanPrel scan) {
     final PlannerSettings settings = PrelUtil.getPlannerSettings(call.getPlanner());
-    final IndexDescriptor descriptor = getIndexDescriptor(settings, scan);
-    //    final BufferAllocator allocator = optimizerContext.getAllocator();
+    final IndexCollection indexCollection = getIndexCollection(settings, scan);
     RexBuilder builder = filter.getCluster().getRexBuilder();
 
     RexNode condition = null;
@@ -213,28 +187,51 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
     RewriteAsBinaryOperators visitor = new RewriteAsBinaryOperators(true, builder);
     condition = condition.accept(visitor);
 
-    Map<Integer, String> fieldNameMap = Maps.newHashMap();
+    if (indexCollection.supportsIndexSelection()) {
+      processWithoutIndexSelection(call, settings, condition,
+          indexCollection, builder, filter, scan);
+    } else {
+      processWithIndexSelection(call, settings, condition,
+          indexCollection, builder, filter, scan);
+    }
+  }
+
+
+  /**
+   *
+   */
+  private void processWithoutIndexSelection(
+      RelOptRuleCall call,
+      PlannerSettings settings,
+      RexNode condition,
+      IndexCollection collection,
+      RexBuilder builder,
+      FilterPrel filter,
+      ScanPrel scan) {
     List<String> fieldNames = scan.getRowType().getFieldNames();
-    BitSet indexColumnBitSet = new BitSet();
-    //    BitSet columnBitSet = new BitSet();
+    //    BitSet indexColumnBitSet = new BitSet();
+    BitSet columnBitSet = new BitSet();
 
     int relColIndex = 0; // index into the rowtype for the indexed columns
+    boolean indexedCol = false;
     for (String field : fieldNames) {
-      final Integer indexColIndex = descriptor.getIdIfValid(field);
-      if (indexColIndex != null) {
-        fieldNameMap.put(indexColIndex, field);
-        indexColumnBitSet.set(indexColIndex);
-        //        columnBitSet.set(relColIndex);
+      // final int indexColIndex = descriptor.getColumnOrdinal(field);
+      // if (indexColIndex != -1) {
+      //   indexColumnBitSet.set(indexColIndex);
+      if (collection.isColumnIndexed(field)) {
+        columnBitSet.set(relColIndex);
+        indexedCol = true;
       }
       relColIndex++;
     }
 
-    if (indexColumnBitSet.isEmpty()) {
+    if (!indexedCol) {
       logger.debug("No index columns are projected from the scan..continue.");
       return;
     }
 
-    FindPartitionConditions c = new FindPartitionConditions(indexColumnBitSet, builder);
+    // Use the same filter analyzer that is used for partitioning columns
+    FindPartitionConditions c = new FindPartitionConditions(columnBitSet, builder);
     c.analyze(condition);
     RexNode indexCondition = c.getFinalCondition();
 
@@ -255,49 +252,15 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
     indexCondition = indexCondition.accept(reverseVisitor);
 
     try {
-      if (descriptor.supportsRowCountStats()) {
-        double indexRows = descriptor.getRows(indexCondition);
+      if (collection.supportsRowCountStats()) {
+        double indexRows = collection.getRows(indexCondition);
         // get the selectivity of the predicates on the index columns
         double selectivity = indexRows/scan.getRows();
 
         if (selectivity < INDEX_SELECTIVITY_THRESHOLD &&
             indexRows < settings.getBroadcastThreshold()) {
-          AbstractGroupScan indexGroupScan = descriptor.getIndexGroupScan();
-          ScanPrel esScanPrel = new ScanPrel(scan.getCluster(),
-              scan.getTraitSet(), indexGroupScan, scan.getRowType());
-
-          FilterPrel indexFilterPrel = new FilterPrel(scan.getCluster(), scan.getTraitSet(),
-              esScanPrel, indexCondition);
-
-          // create a HashJoin broadcast inner plan.
-          final DrillDistributionTrait distBroadcastRight = new DrillDistributionTrait(DrillDistributionTrait.DistributionType.BROADCAST_DISTRIBUTED);
-          final RelTraitSet traitsRight = null;
-          final RelNode left = scan;
-          final RelNode right = indexFilterPrel;
-          final RelTraitSet traitsLeft = left.getTraitSet().plus(Prel.DRILL_PHYSICAL);
-          final RelNode convertedLeft = convert(left, traitsLeft);
-          final RelNode convertedRight = convert(right, traitsRight);
-          final int rowkeyIdx = 0; /* TODO: need to figure out how to get rowkey index since the left
-                                  child need not be the HBaseGroupScan but some other node such
-                                  as Filter, Project etc.*/
-
-          List<RexNode> joinConjuncts = Lists.newArrayList();
-          joinConjuncts.add(
-              builder.makeCall(SqlStdOperatorTable.EQUALS,
-                  RexInputRef.of(rowkeyIdx, convertedLeft.getRowType()),
-                  RexInputRef.of(0,  convertedRight.getRowType())));
-
-          RexNode joinCondition = RexUtil.composeConjunction(builder, joinConjuncts, false);
-
-          HashJoinPrel hj = new HashJoinPrel(scan.getCluster(), traitsLeft, convertedLeft, convertedRight, joinCondition,
-              JoinRelType.INNER);
-
-          // create a Filter corresponding to the remainder condition
-          FilterPrel remainderFilterPrel = new FilterPrel(hj.getCluster(), hj.getTraitSet(),
-              hj, remainderCondition);
-
-          call.transformTo(remainderFilterPrel);
-
+          IndexPlanGenerator planGen = new IndexPlanGenerator(call, collection, indexCondition, remainderCondition, builder);
+          planGen.go(filter, scan);
         }
       }
     } catch (Exception e) {
@@ -306,4 +269,110 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
 
   }
 
+  // Generate an equivalent plan with HashJoin
+  // The right child of hash join consists of the index group scan followed by filter containing the index condition.
+  // Left child of hash join consists of the table scan followed by the same filter containing the index condition.
+  private class IndexPlanGenerator extends SubsetTransformer<FilterPrel, InvalidRelException> {
+    final private IndexCollection indexCollection;
+    final private RexNode indexCondition;
+    final private RexNode remainderCondition;
+    final private RexBuilder builder;
+
+    public IndexPlanGenerator(RelOptRuleCall call, IndexCollection indexCollection,
+        RexNode indexCondition,
+        RexNode remainderCondition,
+        RexBuilder builder) {
+      super(call);
+      this.indexCollection = indexCollection;
+      this.indexCondition = indexCondition;
+      this.remainderCondition = remainderCondition;
+      this.builder = builder;
+    }
+
+    @Override
+    public RelNode convertChild(final FilterPrel filter, final RelNode scan) throws InvalidRelException {
+
+      GroupScan indexGroupScan = indexCollection.getGroupScan();
+      if (indexGroupScan != null) {
+        ScanPrel indexScanPrel = new ScanPrel(scan.getCluster(),
+            scan.getTraitSet(), indexGroupScan, scan.getRowType());
+
+        // right (build) side of the hash join: broadcast the filter-indexscan subplan
+        FilterPrel rightIndexFilterPrel = new FilterPrel(indexScanPrel.getCluster(), indexScanPrel.getTraitSet(),
+            indexScanPrel, indexCondition);
+        final DrillDistributionTrait distBroadcastRight = new DrillDistributionTrait(DrillDistributionTrait.DistributionType.BROADCAST_DISTRIBUTED);
+        RelTraitSet rightTraits = newTraitSet(distBroadcastRight).plus(Prel.DRILL_PHYSICAL);
+        RelNode convertedRight = convert(rightIndexFilterPrel, rightTraits);
+
+        // left (probe) side of the hash join
+        FilterPrel leftIndexFilterPrel = new FilterPrel(scan.getCluster(), scan.getTraitSet(),
+            scan, indexCondition);
+        final RelTraitSet leftTraits = scan.getTraitSet().plus(Prel.DRILL_PHYSICAL);
+        final RelNode convertedLeft = convert(leftIndexFilterPrel, leftTraits);
+
+        // find the rowkey column on the left side of join
+        // TODO: is there a shortcut way to do this ?
+        List<String> leftFieldNames = convertedLeft.getRowType().getFieldNames();
+        int idx = 0;
+        int leftRowKeyIdx = -1;
+        for (String field : leftFieldNames) {
+          if (field.equalsIgnoreCase(DrillHBaseConstants.ROW_KEY)) {
+            leftRowKeyIdx = idx;
+            break;
+          }
+          idx++;
+        }
+
+        // TODO: get the rowkey expr from the right side of join
+
+        List<RexNode> joinConjuncts = Lists.newArrayList();
+        joinConjuncts.add(
+            builder.makeCall(SqlStdOperatorTable.EQUALS,
+                RexInputRef.of(leftRowKeyIdx, convertedLeft.getRowType()),
+                RexInputRef.of(0,  convertedRight.getRowType())));
+
+        RexNode joinCondition = RexUtil.composeConjunction(builder, joinConjuncts, false);
+
+        HashJoinPrel hjPrel = new HashJoinPrel(filter.getCluster(), leftTraits, convertedLeft,
+            convertedRight, joinCondition, JoinRelType.INNER);
+
+        RelNode newRel = hjPrel;
+
+        if (remainderCondition != null && !remainderCondition.isAlwaysTrue()) {
+          // create a Filter corresponding to the remainder condition
+          FilterPrel remainderFilterPrel = new FilterPrel(hjPrel.getCluster(), hjPrel.getTraitSet(),
+              hjPrel, remainderCondition);
+          newRel = remainderFilterPrel;
+        }
+
+        RelNode finalRel = convert(newRel, hjPrel.getTraitSet());
+
+        return finalRel;
+      }
+      return null;
+    }
+  }
+
+  private void processWithIndexSelection(
+      RelOptRuleCall call,
+      PlannerSettings settings,
+      RexNode condition,
+      IndexCollection collection,
+      RexBuilder builder,
+      FilterPrel filter,
+      ScanPrel scan) {
+
+  }
+
+  /**
+   * For a particular table scan for table T1 and an index on that table, find out if it is a covering index
+   * @return
+   */
+  private boolean isCoveringIndex(ScanPrel scan, IndexDescriptor index) {
+    HBaseGroupScan groupScan = (HBaseGroupScan)scan.getGroupScan();
+    List<SchemaPath> tableCols = groupScan.getColumns();
+    return index.isCoveringIndex(tableCols);
+  }
+
 }
+
