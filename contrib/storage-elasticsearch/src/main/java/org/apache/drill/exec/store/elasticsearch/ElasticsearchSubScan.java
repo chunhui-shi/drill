@@ -35,6 +35,7 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JacksonInject;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonCreator;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -110,7 +111,7 @@ public class ElasticsearchSubScan extends AbstractBase implements SubScan {
         private String query;
         private SearchOptions options;
 
-        @parquet.org.codehaus.jackson.annotate.JsonCreator
+        @JsonCreator
         public ElasticsearchSubScanSpec(@JsonProperty("schema") String schema,
                                         @JsonProperty("table") String table,
                                         @JsonProperty("query") String query,

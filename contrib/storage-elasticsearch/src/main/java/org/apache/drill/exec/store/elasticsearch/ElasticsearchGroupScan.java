@@ -33,8 +33,7 @@ import org.apache.drill.exec.store.StoragePluginRegistry;
 import org.apache.drill.exec.store.elasticsearch.ElasticsearchSubScan.ElasticsearchSubScanSpec;
 import org.apache.drill.exec.store.elasticsearch.search.SearchOptions;
 
-import parquet.org.codehaus.jackson.annotate.JsonCreator;
-
+import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import com.fasterxml.jackson.annotation.JacksonInject;

@@ -25,7 +25,7 @@ import io.netty.buffer.DrillBuf;
 
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
-import org.apache.drill.exec.memory.OutOfMemoryException;
+import org.apache.drill.exec.exception.OutOfMemoryException;
 import org.apache.drill.exec.ops.FragmentContext;
 import org.apache.drill.exec.ops.OperatorContext;
 import org.apache.drill.exec.physical.impl.OutputMutator;
@@ -238,7 +238,7 @@ public class ElasticsearchRecordReader extends AbstractRecordReader {
     }
 
     @Override
-    public void allocate(Map<MaterializedField.Key, ValueVector> vectorMap) throws OutOfMemoryException {
+    public void allocate(Map<String, ValueVector> vectorMap) throws OutOfMemoryException {
         super.allocate(vectorMap);
     }
 }
