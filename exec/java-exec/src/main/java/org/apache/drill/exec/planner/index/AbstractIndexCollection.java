@@ -17,14 +17,11 @@
  */
 package org.apache.drill.exec.planner.index;
 
-import java.util.Collection;
 import java.util.Set;
-import java.util.concurrent.ConcurrentMap;
 
 import org.apache.calcite.rex.RexNode;
 import org.apache.drill.exec.physical.base.GroupScan;
 
-import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 
 /**

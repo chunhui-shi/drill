@@ -334,7 +334,11 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
         RexNode joinCondition = RexUtil.composeConjunction(builder, joinConjuncts, false);
 
         HashJoinPrel hjPrel = new HashJoinPrel(filter.getCluster(), leftTraits, convertedLeft,
-            convertedRight, joinCondition, JoinRelType.INNER);
+            convertedRight, joinCondition, JoinRelType.INNER, false, true /* functional join */);
+
+        // keep track of the link between this hash join and the scan such that a restricted
+        // scan can be done later
+        ((ScanPrel)scan).addJoinForRestrictedScan(hjPrel);
 
         RelNode newRel = hjPrel;
 

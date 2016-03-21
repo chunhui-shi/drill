@@ -44,19 +44,22 @@ public class HashJoinPOP extends AbstractBase {
     private final PhysicalOperator right;
     private final List<JoinCondition> conditions;
     private final JoinRelType joinType;
+    private final boolean isFunctionalJoin;
 
     @JsonCreator
     public HashJoinPOP(
             @JsonProperty("left") PhysicalOperator left,
             @JsonProperty("right") PhysicalOperator right,
             @JsonProperty("conditions") List<JoinCondition> conditions,
-            @JsonProperty("joinType") JoinRelType joinType
+            @JsonProperty("joinType") JoinRelType joinType,
+            @JsonProperty("isRowkeyJoin") boolean isFunctionalJoin
     ) {
         this.left = left;
         this.right = right;
         this.conditions = conditions;
         Preconditions.checkArgument(joinType != null, "Join type is missing!");
         this.joinType = joinType;
+        this.isFunctionalJoin = isFunctionalJoin;
     }
 
     @Override
@@ -67,7 +70,7 @@ public class HashJoinPOP extends AbstractBase {
     @Override
     public PhysicalOperator getNewWithChildren(List<PhysicalOperator> children) {
         Preconditions.checkArgument(children.size() == 2);
-        return new HashJoinPOP(children.get(0), children.get(1), conditions, joinType);
+        return new HashJoinPOP(children.get(0), children.get(1), conditions, joinType, isFunctionalJoin);
     }
 
     @Override
@@ -97,7 +100,7 @@ public class HashJoinPOP extends AbstractBase {
             for(JoinCondition c : conditions){
                 flippedConditions.add(c.flip());
             }
-            return new HashJoinPOP(right, left, flippedConditions, JoinRelType.LEFT);
+            return new HashJoinPOP(right, left, flippedConditions, JoinRelType.LEFT, isFunctionalJoin);
         }else{
             return this;
         }

@@ -39,12 +39,15 @@ import org.apache.calcite.plan.RelOptPlanner;
 import org.apache.calcite.plan.RelTraitSet;
 import org.apache.calcite.rel.type.RelDataType;
 
+import com.google.common.collect.Lists;
+
 public class ScanPrel extends AbstractRelNode implements DrillScanPrel {
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory
       .getLogger(ScanPrel.class);
 
   protected final GroupScan groupScan;
   private final RelDataType rowType;
+  private List<Prel> joinsForRestrictedScan = Lists.newArrayList();
 
   public ScanPrel(RelOptCluster cluster, RelTraitSet traits,
       GroupScan groupScan, RelDataType rowType) {
@@ -161,4 +164,9 @@ public class ScanPrel extends AbstractRelNode implements DrillScanPrel {
   public boolean needsFinalColumnReordering() {
     return true;
   }
+
+  public void addJoinForRestrictedScan(Prel joinPrel) {
+    this.joinsForRestrictedScan.add(joinPrel);
+  }
+
 }
