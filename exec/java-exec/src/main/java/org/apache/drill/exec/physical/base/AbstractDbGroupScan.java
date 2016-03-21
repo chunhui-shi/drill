@@ -19,14 +19,14 @@ package org.apache.drill.exec.physical.base;
 
 import org.apache.drill.exec.planner.index.IndexCollection;
 
-public abstract class AbstractNoSqlDbGroupScan extends AbstractGroupScan implements NoSqlDbGroupScan {
-  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AbstractNoSqlDbGroupScan.class);
+public abstract class AbstractDbGroupScan extends AbstractGroupScan implements DbGroupScan {
+  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AbstractDbGroupScan.class);
 
-  public AbstractNoSqlDbGroupScan(String userName) {
+  public AbstractDbGroupScan(String userName) {
     super(userName);
   }
 
-  public AbstractNoSqlDbGroupScan(AbstractNoSqlDbGroupScan that) {
+  public AbstractDbGroupScan(AbstractDbGroupScan that) {
     super(that);
   }
 
