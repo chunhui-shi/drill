@@ -34,6 +34,7 @@ import java.util.TreeMap;
 import java.util.concurrent.TimeUnit;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+
 import org.apache.drill.common.exceptions.DrillRuntimeException;
 import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
@@ -43,7 +44,10 @@ import org.apache.drill.exec.physical.base.GroupScan;
 import org.apache.drill.exec.physical.base.PhysicalOperator;
 import org.apache.drill.exec.physical.base.ScanStats;
 import org.apache.drill.exec.physical.base.ScanStats.GroupScanProperty;
+import org.apache.drill.exec.physical.impl.join.HashJoinBatch;
+import org.apache.drill.exec.planner.index.IndexCollection;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
+import org.apache.drill.exec.record.AbstractRecordBatch;
 import org.apache.drill.exec.store.AbstractRecordReader;
 import org.apache.drill.exec.store.StoragePluginRegistry;
 import org.apache.drill.exec.store.hbase.HBaseSubScan.HBaseSubScanSpec;
@@ -98,6 +102,8 @@ public class HBaseGroupScan extends AbstractDbGroupScan implements DrillHBaseCon
   private TableStatsCalculator statsCalculator;
 
   private long scanSizeInBytes = 0;
+
+  private List<HashJoinBatch> joinsForRestrictedScan = Lists.newArrayList();
 
   @JsonCreator
   public HBaseGroupScan(@JsonProperty("userName") String userName,
@@ -450,6 +456,22 @@ public class HBaseGroupScan extends AbstractDbGroupScan implements DrillHBaseCon
   @VisibleForTesting
   public void setRegionsToScan(NavigableMap<HRegionInfo, ServerName> regionsToScan) {
     this.regionsToScan = regionsToScan;
+  }
+
+  @Override
+  @JsonIgnore
+  public void addJoinForRestrictedScan(HashJoinBatch joinBatch) {
+    joinsForRestrictedScan.add(joinBatch);
+  }
+
+  @Override
+  public boolean supportsSecondaryIndex() {
+    return true;
+  }
+
+  @Override
+  public IndexCollection getSecondaryIndexCollection() {
+    return null;  // TODO...return list of secondary indexes...
   }
 
 }

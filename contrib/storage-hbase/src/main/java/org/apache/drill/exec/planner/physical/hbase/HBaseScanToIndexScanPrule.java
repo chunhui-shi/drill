@@ -323,7 +323,7 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
           idx++;
         }
 
-        // TODO: get the rowkey expr from the right side of join
+        // TODO: get the rowkey expr from the right side (Index lookup) of join
 
         List<RexNode> joinConjuncts = Lists.newArrayList();
         joinConjuncts.add(
@@ -334,11 +334,8 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
         RexNode joinCondition = RexUtil.composeConjunction(builder, joinConjuncts, false);
 
         HashJoinPrel hjPrel = new HashJoinPrel(filter.getCluster(), leftTraits, convertedLeft,
-            convertedRight, joinCondition, JoinRelType.INNER, false, true /* functional join */);
-
-        // keep track of the link between this hash join and the scan such that a restricted
-        // scan can be done later
-        ((ScanPrel)scan).addJoinForRestrictedScan(hjPrel);
+            convertedRight, joinCondition, JoinRelType.INNER, false,
+            ((ScanPrel)scan).getGroupScan() /* useful for join-restricted scans */);
 
         RelNode newRel = hjPrel;
 

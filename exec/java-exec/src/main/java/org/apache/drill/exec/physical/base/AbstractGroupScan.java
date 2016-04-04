@@ -26,7 +26,9 @@ import com.google.common.collect.Lists;
 
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.physical.EndpointAffinity;
+import org.apache.drill.exec.physical.impl.join.HashJoinBatch;
 import org.apache.drill.exec.planner.physical.PlannerSettings;
+import org.apache.drill.exec.record.AbstractRecordBatch;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.google.common.collect.Iterators;
@@ -160,6 +162,11 @@ public abstract class AbstractGroupScan extends AbstractBase implements GroupSca
   @Override
   public Collection<String> getFiles() {
     return null;
+  }
+
+  @Override
+  public void addJoinForRestrictedScan(HashJoinBatch batch) {
+    throw new UnsupportedOperationException();
   }
 
 }

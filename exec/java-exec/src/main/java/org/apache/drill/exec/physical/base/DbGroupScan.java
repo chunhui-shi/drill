@@ -22,7 +22,8 @@ import org.apache.drill.exec.planner.index.IndexCollection;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
- * A DbGroupScan operator represents the scan associated with a database
+ * A DbGroupScan operator represents the scan associated with a database. The underlying
+ * database may support secondary indexes, so there are interface methods for indexes.
  */
 public interface DbGroupScan {
 

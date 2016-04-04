@@ -47,7 +47,6 @@ public class ScanPrel extends AbstractRelNode implements DrillScanPrel {
 
   protected final GroupScan groupScan;
   private final RelDataType rowType;
-  private List<Prel> joinsForRestrictedScan = Lists.newArrayList();
 
   public ScanPrel(RelOptCluster cluster, RelTraitSet traits,
       GroupScan groupScan, RelDataType rowType) {
@@ -163,10 +162,6 @@ public class ScanPrel extends AbstractRelNode implements DrillScanPrel {
   @Override
   public boolean needsFinalColumnReordering() {
     return true;
-  }
-
-  public void addJoinForRestrictedScan(Prel joinPrel) {
-    this.joinsForRestrictedScan.add(joinPrel);
   }
 
 }
