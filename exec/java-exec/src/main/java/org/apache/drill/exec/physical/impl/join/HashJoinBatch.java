@@ -41,6 +41,8 @@ import org.apache.drill.exec.physical.config.HashJoinPOP;
 import org.apache.drill.exec.physical.impl.common.ChainedHashTable;
 import org.apache.drill.exec.physical.impl.common.HashTable;
 import org.apache.drill.exec.physical.impl.common.HashTableConfig;
+import org.apache.drill.exec.physical.impl.common.HashTableIterator;
+import org.apache.drill.exec.physical.impl.common.HashTableTemplate;
 import org.apache.drill.exec.physical.impl.common.HashTableStats;
 import org.apache.drill.exec.physical.impl.common.IndexPointer;
 import org.apache.drill.exec.physical.impl.join.JoinUtils.JoinComparator;
@@ -106,6 +108,11 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
   // Schema of the build side
   private BatchSchema rightSchema = null;
 
+  // Whether this HashJoin is used for a row-key based join
+  private boolean isRowKeyJoin = false;
+
+  // An iterator over the build side hash table (only applicable for row-key joins)
+  private HashTableIterator htIterator = null;
 
   // Generator mapping for the build side
   // Generator mapping for the build side : scalar
@@ -216,7 +223,18 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
       if (state == BatchState.FIRST) {
         // Build the hash table, using the build side record batches.
         executeBuildPhase();
-        //                IterOutcome next = next(HashJoinHelper.LEFT_INPUT, left);
+
+        // once build phase is done and if this hash join was meant to provide a set of
+        // primary keys to a join-restricted scan, then create an iterator on the build
+        // side such that the scan can consume it later
+        if (isRowKeyJoin) {
+          // TODO: here we are directly down-casting the hashTable to HashTableTemplate which is
+          // not ideal.  Can the HashTableIterator constructor take a HashTable argument instead
+          // of HashTableTemplate ?  That will require some work since HashTable interface does
+          // not expose the internals of a particular hash table that is needed by the iterator.
+          htIterator = new HashTableIterator((HashTableTemplate) hashTable);
+        }
+
         hashJoinProbe.setupHashJoinProbe(context, hyperContainer, left, left.getRecordCount(), this, hashTable,
             hjHelper, joinType);
 
@@ -499,6 +517,9 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
     this.right = right;
     joinType = popConfig.getJoinType();
     conditions = popConfig.getConditions();
+    if (popConfig.getScanForRowKeyJoin() != null) {
+      this.isRowKeyJoin = true;
+    }
   }
 
   private void updateStats(HashTable htable) {
@@ -510,6 +531,16 @@ public class HashJoinBatch extends AbstractRecordBatch<HashJoinPOP> {
     stats.setLongStat(Metric.NUM_ENTRIES, htStats.numEntries);
     stats.setLongStat(Metric.NUM_RESIZING, htStats.numResizing);
     stats.setLongStat(Metric.RESIZING_TIME, htStats.resizingTime);
+  }
+
+  /**
+   * Get the hash table iterator that is created for the build side of the hash join if
+   * this hash join was instantiated as a row-key join.
+   * @return hash table iterator or null if this hash join was not a row-key join or if it
+   * was a row-key join but the build has not yet completed.
+   */
+  public HashTableIterator getBuildSideIterator() {
+    return htIterator;
   }
 
   @Override
