@@ -22,7 +22,7 @@
     <parent>
         <artifactId>drill-contrib-parent</artifactId>
         <groupId>org.apache.drill.contrib</groupId>
-        <version>1.2.0-SNAPSHOT</version>
+        <version>1.7.0-SNAPSHOT</version>
     </parent>
 
     <artifactId>drill-storage-elasticsearch</artifactId>
@@ -105,6 +105,10 @@
                     <!-- Something in Drill seems to conflict with this, so leave it out. -->
                     <groupId>commons-logging</groupId>
                     <artifactId>commons-logging-api</artifactId>
+                </exclusion>
+                <exclusion>
+                  <artifactId>log4j</artifactId>
+                  <groupId>log4j</groupId>
                 </exclusion>
             </exclusions>
         </dependency>
