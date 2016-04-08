@@ -56,7 +56,7 @@ public abstract class HashTableTemplate implements HashTable {
   private IntVector startIndices;
 
   // Array of batch holders..each batch holder can hold up to BATCH_SIZE entries
-  private ArrayList<BatchHolder> batchHolders;
+  protected ArrayList<BatchHolder> batchHolders;
 
   // Size of the hash table in terms of number of buckets
   private int tableSize = 0;
@@ -105,7 +105,7 @@ public abstract class HashTableTemplate implements HashTable {
   public class BatchHolder {
 
     // Container of vectors to hold type-specific keys
-    private VectorContainer htContainer;
+    protected VectorContainer htContainer;
 
     // Array of 'link' values
     private IntVector links;
@@ -113,7 +113,7 @@ public abstract class HashTableTemplate implements HashTable {
     // Array of hash values - this is useful when resizing the hash table
     private IntVector hashValues;
 
-    private int maxOccupiedIdx = -1;
+    protected int maxOccupiedIdx = -1;
     private int batchOutputCount = 0;
 
     private int batchIndex = 0;
