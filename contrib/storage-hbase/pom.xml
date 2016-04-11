@@ -39,7 +39,12 @@
       <version>3.20.0-GA</version>
       <scope>test</scope>
     </dependency>
-  
+
+    <dependency>
+      <groupId>org.apache.drill.contrib</groupId>
+      <artifactId>drill-storage-elasticsearch</artifactId>
+      <version>${project.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.drill.exec</groupId>
       <artifactId>drill-java-exec</artifactId>
