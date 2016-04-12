@@ -43,6 +43,8 @@ import org.slf4j.LoggerFactory;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static org.apache.drill.exec.store.elasticsearch.ElasticsearchConstants.ES_CONFIG_KEY_HOSTS;
@@ -169,8 +171,12 @@ public class ElasticsearchStoragePluginConfig extends StoragePluginConfigBase {
                             .build();
 
             for (ImmutablePair<String, Integer> pair : getHosts()) {
-                client.addTransportAddress(
-                        new InetSocketTransportAddress(pair.getLeft(), pair.getRight()));
+                try {
+                    client.addTransportAddress(
+                            new InetSocketTransportAddress(InetAddress.getByName(pair.getLeft()), pair.getRight()));
+                }catch (UnknownHostException e){
+                    logger.warn("Unknown host: " + pair.getLeft() );
+                }
             }
         }
 

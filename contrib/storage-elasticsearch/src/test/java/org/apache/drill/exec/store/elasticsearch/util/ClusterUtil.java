@@ -23,7 +23,7 @@ import org.apache.drill.exec.store.elasticsearch.ElasticsearchStoragePluginConfi
 import org.apache.drill.exec.store.elasticsearch.types.ElasticsearchType;
 
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.action.admin.indices.exists.indices.IndicesExistsResponse;
 import org.elasticsearch.action.admin.indices.mapping.put.PutMappingRequestBuilder;
 import org.elasticsearch.action.bulk.BulkRequestBuilder;
@@ -52,6 +52,8 @@ import java.util.EnumSet;
 import java.util.Locale;
 import java.util.Map;
 import java.util.HashMap;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 
 import static org.elasticsearch.node.NodeBuilder.nodeBuilder;
 import static org.hamcrest.Matchers.equalTo;
@@ -115,7 +117,12 @@ public final class ClusterUtil implements Closeable {
         remote = TransportClient.builder()
                 .settings(Settings.builder().put("cluster.name", cluster)
                         .put("path.home", home.getAbsolutePath()).build()).build();
-        remote.addTransportAddress(new InetSocketTransportAddress(host, port));
+        try {
+            remote.addTransportAddress(new InetSocketTransportAddress(InetAddress.getByName(host), port));
+        }
+        catch(UnknownHostException e){
+            logger.error("unknown host: " + host);
+        }
         remoteClusterName = cluster;
     }
 
