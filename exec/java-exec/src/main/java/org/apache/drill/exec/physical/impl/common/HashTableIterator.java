@@ -17,7 +17,7 @@
  */
 package org.apache.drill.exec.physical.impl.common;
 
-import jersey.repackaged.com.google.common.base.Preconditions;
+import com.google.common.base.Preconditions;
 
 import org.apache.drill.exec.expr.holders.ValueHolder;
 import org.apache.drill.exec.record.VectorWrapper;
