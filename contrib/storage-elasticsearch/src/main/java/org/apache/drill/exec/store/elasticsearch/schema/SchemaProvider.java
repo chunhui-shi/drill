@@ -29,8 +29,11 @@ import org.apache.drill.exec.store.elasticsearch.schema.DrillElasticsearchTable.
 import org.apache.drill.exec.store.elasticsearch.schema.DrillElasticsearchTable.ColumnDefinition;
 
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.hppc.ObjectLookupContainer;
-import org.elasticsearch.common.hppc.cursors.ObjectCursor;
+//import org.elasticsearch.common.hppc.ObjectLookupContainer;
+//import org.elasticsearch.common.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.ObjectLookupContainer;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
 import org.elasticsearch.action.admin.indices.mapping.get.GetMappingsResponse;
 import org.elasticsearch.cluster.metadata.MappingMetaData;
