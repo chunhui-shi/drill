@@ -32,4 +32,6 @@ public interface ElasticsearchConstants {
     // Defaults
     String ES_CONFIG_DEFAULT_BATCH_SIZE     = "1000";
     String ES_CONFIG_DEFAULT_SCROLL_TIMEOUT = "60000";
+
+    String ROW_KEY = "row_key";
 }

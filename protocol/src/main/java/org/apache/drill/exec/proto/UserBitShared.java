@@ -688,6 +688,7 @@ public final class UserBitShared {
         case 34: return WINDOW;
         case 35: return NESTED_LOOP_JOIN;
         case 36: return AVRO_SUB_SCAN;
+        case 37: return ELASTICSEARCH_SUB_SCAN;
         default: return null;
       }
     }

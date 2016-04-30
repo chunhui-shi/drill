@@ -22,6 +22,7 @@ import com.google.common.collect.ImmutableList;
 
 import org.apache.drill.common.exceptions.DrillRuntimeException;
 import org.apache.drill.common.expression.SchemaPath;
+import org.apache.drill.exec.store.elasticsearch.ElasticsearchConstants;
 import org.apache.drill.exec.store.elasticsearch.types.ElasticsearchType;
 import org.apache.drill.exec.store.elasticsearch.UnsupportedTypeException;
 import org.apache.drill.exec.store.elasticsearch.ElasticsearchStoragePluginConfig;
@@ -159,12 +160,17 @@ public class SchemaProvider {
 
         ImmutableList.Builder<ColumnDefinition> builder = ImmutableList.builder();
 
+        ColumnDefinition rowkey = new ColumnDefinition(ElasticsearchConstants.ROW_KEY,
+                SchemaPath.getSimplePath(ElasticsearchConstants.ROW_KEY),
+                ElasticsearchType.STRING);
+        builder.add(rowkey);
         for (Map.Entry<String, Map> entry : map.entrySet()) {
 
             String fieldName = entry.getKey();
             String fieldType = (String) entry.getValue().get("type");
 
-            if (fieldType.equalsIgnoreCase("nested") || fieldType.equalsIgnoreCase("object")) {
+            if (fieldType == null ||
+                    fieldType.equalsIgnoreCase("nested") || fieldType.equalsIgnoreCase("object")) {
 
                 @SuppressWarnings("unchecked")
                 List<ColumnDefinition> nested =
