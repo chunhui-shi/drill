@@ -49,8 +49,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
+import java.util.LinkedList;
+
+import java.util.Queue;
 
 import static java.lang.String.format;
 
@@ -91,17 +94,40 @@ public class ElasticsearchRecordReader extends AbstractRecordReader {
         setColumns(columns);
     }
 
+    private void getAllColumns(ImmutableList.Builder<SchemaPath> builder,
+                               List<ColumnDefinition> toGoThroughColumns,
+                               Collection<SchemaPath> columns) {
+        Queue<ColumnDefinition> queue = new LinkedList<>(toGoThroughColumns);
+        while ( !queue.isEmpty() ) {
+            ColumnDefinition col = queue.remove();
+            if(col.hasChildren()) {
+                queue.addAll(col.children());
+            }
+            else {
+                if (columns != null) {
+                    for (SchemaPath path : columns) {
+                        if ( col.path().contains(path)) {
+                            builder.add(col.path());
+                            break;
+                        }
+                    }
+                }
+                else {
+                    builder.add(col.path());
+                }
+            }
+        }
+    }
     @Override
     protected Collection<SchemaPath> transformColumns(Collection<SchemaPath> columns) {
 
-        if (!isStarQuery()) {
-            return columns;
-        }
-
-        // Expand '*' into all columns
         ImmutableList.Builder<SchemaPath> builder = ImmutableList.builder();
-        for (ColumnDefinition col : definition.columns()) {
-            builder.add(col.path());
+        if (!isStarQuery()) {
+            getAllColumns(builder, definition.columns(), columns);
+        }
+        else {
+            // Expand '*' into all columns
+            getAllColumns(builder, definition.columns(), null);
         }
         return builder.build();
     }
@@ -162,12 +188,17 @@ public class ElasticsearchRecordReader extends AbstractRecordReader {
                 continue;
             }
 
-            // XXX - Potentially very expense. Need to research alternate ways of getting at _source.
             Map<String, Object> source = hit.sourceAsMap();
+
 
             for (ColumnDefinition column : definition.columns()) {
                 if (column.selected()) {
-                    populate(column, source.get(column.name()), writer);
+                    if(column.name() == ElasticsearchConstants.ROW_KEY) {
+                        populate(column, hit.id(), writer);
+                    }
+                    else {
+                        populate(column, source.get(column.name()), writer);
+                    }
                 }
             }
         }
