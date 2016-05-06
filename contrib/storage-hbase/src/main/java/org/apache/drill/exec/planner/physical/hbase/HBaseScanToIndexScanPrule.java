@@ -18,6 +18,7 @@
 
 package org.apache.drill.exec.planner.physical.hbase;
 
+import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.List;
 
@@ -28,6 +29,7 @@ import org.apache.calcite.plan.RelTraitSet;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.ops.OptimizerRulesContext;
 import org.apache.drill.exec.physical.base.GroupScan;
+import org.apache.drill.exec.physical.base.IndexGroupScan;
 import org.apache.drill.exec.planner.logical.RelOptHelper;
 import org.apache.drill.exec.planner.logical.partition.FindPartitionConditions;
 import org.apache.drill.exec.planner.logical.partition.RewriteAsBinaryOperators;
@@ -49,6 +51,9 @@ import org.apache.drill.exec.planner.index.IndexDescriptor;
 import org.apache.calcite.rel.InvalidRelException;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rel.core.JoinRelType;
+import org.apache.calcite.rel.type.RelDataType;
+import org.apache.calcite.rel.type.RelDataTypeFactory;
+import org.apache.calcite.rel.type.RelDataTypeField;
 import org.apache.calcite.plan.RelOptRuleCall;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexInputRef;
@@ -292,17 +297,38 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
     @Override
     public RelNode convertChild(final FilterPrel filter, final RelNode scan) throws InvalidRelException {
 
-      GroupScan indexGroupScan = indexCollection.getGroupScan();
+      IndexGroupScan indexGroupScan = (IndexGroupScan)indexCollection.getGroupScan();
       if (indexGroupScan != null) {
         ScanPrel indexScanPrel = new ScanPrel(scan.getCluster(),
             scan.getTraitSet(), indexGroupScan, scan.getRowType());
 
-        // right (build) side of the hash join: broadcast the filter-indexscan subplan
+        // right (build) side of the hash join: broadcast the project-filter-indexscan subplan
         FilterPrel rightIndexFilterPrel = new FilterPrel(indexScanPrel.getCluster(), indexScanPrel.getTraitSet(),
             indexScanPrel, indexCondition);
+
+        // project the rowkey column from the index scan
+        // TODO: check if this is ok because the child of Project is actually the Filter but we want to project
+        // the rowkey from the underlying Scan which is below the Filter.
+        List<RexNode> projectExprs = Lists.newArrayList();
+        int rowKeyIndex = indexGroupScan.getRowKeyOrdinal();
+        projectExprs.add(RexInputRef.of(rowKeyIndex, indexScanPrel.getRowType()));
+
+        final List<RelDataTypeField> indexScanFields = indexScanPrel.getRowType().getFieldList();
+
+        final RelDataTypeFactory.FieldInfoBuilder fieldTypeBuilder =
+            indexScanPrel.getCluster().getTypeFactory().builder();
+
+        // build the row type for the Project
+        final RelDataTypeField rowKeyField = indexScanFields.get(rowKeyIndex);
+        fieldTypeBuilder.add(rowKeyField);
+        final RelDataType projectRowType = fieldTypeBuilder.build();
+
+        final ProjectPrel rightIndexProjectPrel = new ProjectPrel(indexScanPrel.getCluster(), indexScanPrel.getTraitSet(),
+            rightIndexFilterPrel, projectExprs, projectRowType);
+
         final DrillDistributionTrait distBroadcastRight = new DrillDistributionTrait(DrillDistributionTrait.DistributionType.BROADCAST_DISTRIBUTED);
         RelTraitSet rightTraits = newTraitSet(distBroadcastRight).plus(Prel.DRILL_PHYSICAL);
-        RelNode convertedRight = convert(rightIndexFilterPrel, rightTraits);
+        RelNode convertedRight = convert(rightIndexProjectPrel, rightTraits);
 
         // left (probe) side of the hash join
         FilterPrel leftIndexFilterPrel = new FilterPrel(scan.getCluster(), scan.getTraitSet(),
@@ -323,13 +349,12 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
           idx++;
         }
 
-        // TODO: get the rowkey expr from the right side (Index lookup) of join
-
         List<RexNode> joinConjuncts = Lists.newArrayList();
         joinConjuncts.add(
             builder.makeCall(SqlStdOperatorTable.EQUALS,
                 RexInputRef.of(leftRowKeyIdx, convertedLeft.getRowType()),
-                RexInputRef.of(0,  convertedRight.getRowType())));
+                RexInputRef.of(0 /* only rowkey field is being projected from right side */,
+                    convertedRight.getRowType())));
 
         RexNode joinCondition = RexUtil.composeConjunction(builder, joinConjuncts, false);
 
