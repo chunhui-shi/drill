@@ -23,7 +23,7 @@ import org.apache.drill.common.exceptions.ExecutionSetupException;
 import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.physical.EndpointAffinity;
 import org.apache.drill.exec.physical.PhysicalOperatorSetupException;
-import org.apache.drill.exec.physical.base.AbstractGroupScan;
+import org.apache.drill.exec.physical.base.AbstractIndexGroupScan;
 import org.apache.drill.exec.physical.base.GroupScan;
 import org.apache.drill.exec.physical.base.PhysicalOperator;
 import org.apache.drill.exec.physical.base.ScanStats;
@@ -49,7 +49,7 @@ import java.util.List;
  * Elasticsearch group scan.
  */
 @JsonTypeName("elasticsearch-scan")
-public class ElasticsearchGroupScan extends AbstractGroupScan {
+public class ElasticsearchGroupScan extends AbstractIndexGroupScan {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchGroupScan.class);
 

@@ -17,24 +17,18 @@
  */
 package org.apache.drill.exec.physical.base;
 
-import org.apache.drill.exec.planner.index.IndexCollection;
-
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 /**
- * A DbGroupScan operator represents the scan associated with a database. The underlying
- * database may support secondary indexes, so there are interface methods for indexes.
+ * An IndexGroupScan operator represents the scan associated with an Index.
  */
-public interface DbGroupScan extends GroupScan {
-
-  @JsonIgnore
-  public boolean supportsSecondaryIndex();
+public interface IndexGroupScan extends GroupScan {
 
   /**
-   * Get the index collection associated with this table if any
-   *
+   * Get the column ordinal of the rowkey column from the output schema of the IndexGroupScan
+   * @return
    */
   @JsonIgnore
-  public IndexCollection getSecondaryIndexCollection();
+  public int getRowKeyOrdinal();
 
 }

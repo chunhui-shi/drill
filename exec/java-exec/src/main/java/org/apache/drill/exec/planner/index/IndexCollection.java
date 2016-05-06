@@ -19,6 +19,7 @@ package org.apache.drill.exec.planner.index;
 
 import org.apache.calcite.rex.RexNode;
 import org.apache.drill.exec.physical.base.GroupScan;
+import org.apache.drill.exec.physical.base.IndexGroupScan;
 
 // Interface used to describe an index collection
 public interface IndexCollection {
@@ -86,7 +87,7 @@ public interface IndexCollection {
    * have its own GroupScan.
    * @return GroupScan for this IndexCollection if available, otherwise null
    */
-  public GroupScan getGroupScan();
+  public IndexGroupScan getGroupScan();
 
   /**
    * Check if the field name is the leading key of any of the indexes in this collection

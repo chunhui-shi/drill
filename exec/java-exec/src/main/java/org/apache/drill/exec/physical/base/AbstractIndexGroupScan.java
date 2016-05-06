@@ -17,24 +17,20 @@
  */
 package org.apache.drill.exec.physical.base;
 
-import org.apache.drill.exec.planner.index.IndexCollection;
+public abstract class AbstractIndexGroupScan extends AbstractGroupScan implements IndexGroupScan {
+  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AbstractIndexGroupScan.class);
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
+  public AbstractIndexGroupScan(String userName) {
+    super(userName);
+  }
 
-/**
- * A DbGroupScan operator represents the scan associated with a database. The underlying
- * database may support secondary indexes, so there are interface methods for indexes.
- */
-public interface DbGroupScan extends GroupScan {
+  public AbstractIndexGroupScan(AbstractIndexGroupScan that) {
+    super(that);
+  }
 
-  @JsonIgnore
-  public boolean supportsSecondaryIndex();
-
-  /**
-   * Get the index collection associated with this table if any
-   *
-   */
-  @JsonIgnore
-  public IndexCollection getSecondaryIndexCollection();
+  @Override
+  public int getRowKeyOrdinal() {
+    throw new UnsupportedOperationException();
+  }
 
 }

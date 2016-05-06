@@ -26,6 +26,7 @@ import java.util.List;
 
 import org.apache.calcite.rex.RexNode;
 import org.apache.drill.exec.physical.base.GroupScan;
+import org.apache.drill.exec.physical.base.IndexGroupScan;
 import org.apache.drill.exec.planner.physical.ScanPrel;
 import org.apache.drill.exec.store.elasticsearch.ElasticsearchGroupScan;
 import org.apache.drill.exec.store.elasticsearch.ElasticsearchScanSpec;
@@ -95,7 +96,7 @@ public class HBaseESIndexCollection extends AbstractIndexCollection {
   }
 
   @Override
-  public GroupScan getGroupScan() {
+  public IndexGroupScan getGroupScan() {
     return new ElasticsearchGroupScan(tableScanPrel.getGroupScan().getUserName(),
         this.esPlugin, this.esScanSpec, null /* null implies all columns */);
   }

@@ -54,6 +54,12 @@ public interface IndexDescriptor {
   public boolean isCoveringIndex(List<SchemaPath> columns);
 
   /**
+   * Get the list of columns (typically 1 column) that constitute the row key (primary key)
+   * @return
+   */
+  public List<SchemaPath> getRowKeyColumns();
+
+  /**
    * Get the name of the table this index is associated with
    */
   public String getTableName();

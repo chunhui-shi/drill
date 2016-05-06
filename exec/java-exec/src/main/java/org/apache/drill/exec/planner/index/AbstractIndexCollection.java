@@ -21,6 +21,7 @@ import java.util.Set;
 
 import org.apache.calcite.rex.RexNode;
 import org.apache.drill.exec.physical.base.GroupScan;
+import org.apache.drill.exec.physical.base.IndexGroupScan;
 
 import com.google.common.collect.Sets;
 
@@ -75,7 +76,7 @@ public abstract class AbstractIndexCollection implements IndexCollection {
   }
 
   @Override
-  public GroupScan getGroupScan() {
+  public IndexGroupScan getGroupScan() {
     return null;
   }
 

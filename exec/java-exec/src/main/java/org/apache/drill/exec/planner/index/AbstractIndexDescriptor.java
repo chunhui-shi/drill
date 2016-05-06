@@ -45,6 +45,8 @@ public abstract class AbstractIndexDescriptor implements IndexDescriptor {
    */
   protected final List<SchemaPath> nonIndexColumns;
 
+  protected final List<SchemaPath> rowKeyColumns;
+
   /**
    * indexName: name of the index that should be unique within the scope of a table
    */
@@ -56,11 +58,13 @@ public abstract class AbstractIndexDescriptor implements IndexDescriptor {
 
   public AbstractIndexDescriptor(List<SchemaPath> indexCols,
       List<SchemaPath> nonIndexCols,
+      List<SchemaPath> rowKeyColumns,
       String indexName,
       String tableName,
       IndexDescriptor.IndexType type) {
     this.indexColumns = indexCols;
     this.nonIndexColumns = nonIndexCols;
+    this.rowKeyColumns = rowKeyColumns;
     this.indexName = indexName;
     this.tableName = tableName;
     this.indexType = type;
@@ -147,6 +151,11 @@ public abstract class AbstractIndexDescriptor implements IndexDescriptor {
   @Override
   public boolean supportsFullTextSearch() {
     return false;
+  }
+
+  @Override
+  public List<SchemaPath> getRowKeyColumns() {
+    return this.rowKeyColumns;
   }
 
 }
