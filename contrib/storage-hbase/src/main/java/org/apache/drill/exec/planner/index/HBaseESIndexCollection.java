@@ -24,9 +24,11 @@ import static org.apache.drill.exec.store.elasticsearch.ElasticsearchConstants.E
 
 import java.util.List;
 
+import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
 import org.apache.drill.exec.physical.base.GroupScan;
 import org.apache.drill.exec.physical.base.IndexGroupScan;
+import org.apache.drill.exec.planner.logical.DrillTable;
 import org.apache.drill.exec.planner.physical.ScanPrel;
 import org.apache.drill.exec.store.elasticsearch.ElasticsearchGroupScan;
 import org.apache.drill.exec.store.elasticsearch.ElasticsearchScanSpec;
@@ -90,9 +92,9 @@ public class HBaseESIndexCollection extends AbstractIndexCollection {
   }
 
   @Override
-  public double getRows(RexNode indexCondition) {
-    // Call the wrapper for creating a COUNT query
-    return CountWrapper.getCount(tableScanPrel, indexCondition, indexName, esPlugin.getConfig());
+  public double getRows(RexNode indexCondition, IndexDescriptor idxDesc) {
+    return idxDesc.getRows(indexCondition);
+
   }
 
   @Override

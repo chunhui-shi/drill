@@ -19,6 +19,7 @@ package org.apache.drill.exec.planner.logical;
 
 import java.io.IOException;
 
+import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.Schema.TableType;
 import org.apache.calcite.schema.Statistic;
 import org.apache.calcite.schema.Statistics;
@@ -26,6 +27,7 @@ import org.apache.calcite.schema.Table;
 import org.apache.drill.common.JSONOptions;
 import org.apache.drill.common.logical.StoragePluginConfig;
 import org.apache.drill.exec.physical.base.GroupScan;
+import org.apache.drill.exec.planner.index.IndexStatistic;
 import org.apache.drill.exec.store.StoragePlugin;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.plan.RelOptTable;
@@ -96,6 +98,10 @@ public abstract class DrillTable implements Table {
   @Override
   public Statistic getStatistic() {
     return Statistics.UNKNOWN;
+  }
+
+  public IndexStatistic getIndexStatistic(RelNode input, RexNode condition) {
+    return null;
   }
 
   public RelNode toRel(RelOptTable.ToRelContext context, RelOptTable table) {

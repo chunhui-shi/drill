@@ -31,6 +31,7 @@ import org.apache.drill.exec.physical.base.AbstractGroupScan;
 import org.apache.drill.exec.server.DrillbitContext;
 import org.apache.drill.exec.store.AbstractStoragePlugin;
 import org.apache.drill.exec.store.SchemaConfig;
+import org.apache.drill.exec.store.SchemaFactory;
 import org.apache.drill.exec.store.StoragePluginOptimizerRule;
 import org.apache.drill.exec.store.elasticsearch.rules.ElasticsearchPushFilterIntoScan;
 
@@ -58,6 +59,7 @@ public class ElasticsearchStoragePlugin extends AbstractStoragePlugin {
         this.factory = new ElasticsearchSchemaFactory(this, name);
     }
 
+
     @Override
     public ElasticsearchStoragePluginConfig getConfig() {
         return config;
@@ -66,6 +68,10 @@ public class ElasticsearchStoragePlugin extends AbstractStoragePlugin {
     @Override
     public void registerSchemas(SchemaConfig schemaConfig, SchemaPlus parent) throws IOException {
         factory.registerSchemas(schemaConfig, parent);
+    }
+
+    public SchemaFactory getSchemaFactory() {
+        return factory;
     }
 
     @Override

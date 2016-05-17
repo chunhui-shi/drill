@@ -31,6 +31,7 @@ import com.google.common.collect.Sets;
  */
 public abstract class AbstractIndexCollection implements IndexCollection {
 
+  static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AbstractIndexCollection.class);
   /**
    * A set of indexes for a particular table
    */
@@ -61,7 +62,7 @@ public abstract class AbstractIndexCollection implements IndexCollection {
   }
 
   @Override
-  public double getRows(RexNode indexCondition) {
+  public double getRows(RexNode indexCondition, IndexDescriptor idxDesc) {
     throw new UnsupportedOperationException("getRows() not supported for this index collection.");
   }
 

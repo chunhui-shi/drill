@@ -15,35 +15,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.drill.common.logical;
+
+package org.apache.drill.exec.planner.index;
 
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
-import java.util.Map;
-
-
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property="type")
-public abstract class StoragePluginConfig{
-
-  private boolean enabled = true;
-
-  public boolean isEnabled() {
-    return enabled;
-  }
-
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
-  }
-
-  public String getValue(String key) {
-    return null;
-  }
-
-  @Override
-  public abstract boolean equals(Object o);
-
-  @Override
-  public abstract int hashCode();
-
+public interface IndexDiscover {
+    IndexCollection getTableIndex(String tableName);
 }

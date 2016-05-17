@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -15,35 +15,19 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.drill.common.logical;
+package org.apache.drill.exec.planner.index;
 
+import org.apache.drill.exec.planner.logical.DrillTable;
 
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
+import java.util.List;
 
-import java.util.Map;
+public interface IndexDiscoverable {
 
-
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property="type")
-public abstract class StoragePluginConfig{
-
-  private boolean enabled = true;
-
-  public boolean isEnabled() {
-    return enabled;
-  }
-
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
-  }
-
-  public String getValue(String key) {
-    return null;
-  }
-
-  @Override
-  public abstract boolean equals(Object o);
-
-  @Override
-  public abstract int hashCode();
+    /**
+     * return the found DrillTable with path (e.g. names={"elasticsearch", "staffidx", "stjson"})
+     * @param names
+     * @return
+     */
+    DrillTable findTable(List<String> names);
 
 }

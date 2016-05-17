@@ -83,9 +83,18 @@ public class ElasticsearchStoragePluginConfig extends StoragePluginConfigBase {
                 Joiner.on(", ").withKeyValueSeparator(":").join(this.config));
     }
 
+
     @JsonProperty
     public Map<String, String> getConfig() {
         return ImmutableMap.copyOf(config);
+    }
+
+    @Override
+    public String getValue(String key) {
+        if(key == "cluster" || key == ES_CONFIG_KEY_CLUSTER ) {
+            return config.get(ES_CONFIG_KEY_CLUSTER);
+        }
+        return config.get(key);
     }
 
     @Override

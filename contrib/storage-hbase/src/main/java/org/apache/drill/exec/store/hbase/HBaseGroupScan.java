@@ -45,7 +45,9 @@ import org.apache.drill.exec.physical.base.PhysicalOperator;
 import org.apache.drill.exec.physical.base.ScanStats;
 import org.apache.drill.exec.physical.base.ScanStats.GroupScanProperty;
 import org.apache.drill.exec.physical.impl.join.HashJoinBatch;
+import org.apache.drill.exec.planner.index.HBaseIndexDiscover;
 import org.apache.drill.exec.planner.index.IndexCollection;
+import org.apache.drill.exec.planner.physical.ScanPrel;
 import org.apache.drill.exec.proto.CoordinationProtos.DrillbitEndpoint;
 import org.apache.drill.exec.record.AbstractRecordBatch;
 import org.apache.drill.exec.store.AbstractRecordReader;
@@ -470,8 +472,10 @@ public class HBaseGroupScan extends AbstractDbGroupScan implements DrillHBaseCon
   }
 
   @Override
-  public IndexCollection getSecondaryIndexCollection() {
-    return null;  // TODO...return list of secondary indexes...
+  public IndexCollection getSecondaryIndexCollection(ScanPrel scan) {
+
+    return new HBaseIndexDiscover(this, scan).getTableIndex(getTableName());
   }
+
 
 }

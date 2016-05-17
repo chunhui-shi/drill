@@ -24,6 +24,8 @@ import org.apache.calcite.schema.SchemaPlus;
 import org.apache.calcite.schema.Table;
 
 import org.apache.drill.common.exceptions.DrillRuntimeException;
+import org.apache.drill.exec.planner.index.IndexDiscoverable;
+import org.apache.drill.exec.planner.logical.DrillTable;
 import org.apache.drill.exec.store.AbstractSchema;
 import org.apache.drill.exec.store.SchemaConfig;
 import org.apache.drill.exec.store.SchemaFactory;
@@ -43,7 +45,7 @@ import static java.lang.String.format;
 /**
  * Schema factory for elasticsearch
  */
-public class ElasticsearchSchemaFactory implements SchemaFactory {
+public class ElasticsearchSchemaFactory implements SchemaFactory, IndexDiscoverable {
 
     private static final Logger logger = LoggerFactory.getLogger(ElasticsearchSchemaFactory.class);
 
@@ -66,6 +68,31 @@ public class ElasticsearchSchemaFactory implements SchemaFactory {
         es.setHolder(plus);
 
         logger.info("Schema registered for elasticsearch storage plugin: [{}]", schema);
+    }
+
+    @Override
+    public DrillTable findTable(List<String> names) {
+        //XXX now assume the input names is <storage>.<schema>.<table>
+        if(names.size() < 1 ) {
+            logger.warn("not enough information for finding a table: " + names.toString());
+            return null;
+        }
+        if (! names.get(0).equalsIgnoreCase(this.schema)){
+            logger.warn("root schema name not match between {} AND {}", names.get(0), this.schema);
+            return null;
+        }
+
+        String schemaName = names.get(1);
+        String tableName = names.get(2);
+        try {
+            TableDefinition def = provider.table(schemaName, tableName);
+            ElasticsearchScanSpec spec = new ElasticsearchScanSpec(schemaName, tableName, null);
+            return new DrillElasticsearchTable(def, schema, plugin, spec);
+        }
+        catch (IOException | UnsupportedTypeException e) {
+            throw new DrillRuntimeException(format("Failed to read table: [%s.%s]", schemaName, tableName), e);
+        }
+
     }
 
     /**

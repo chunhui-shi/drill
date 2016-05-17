@@ -108,6 +108,10 @@ public abstract class AbstractStoragePlugin implements StoragePlugin{
     throw new UnsupportedOperationException();
   }
 
+  public SchemaFactory getSchemaFactory() {
+    return null;
+  }
+
   @Override
   public void start() throws IOException {
   }

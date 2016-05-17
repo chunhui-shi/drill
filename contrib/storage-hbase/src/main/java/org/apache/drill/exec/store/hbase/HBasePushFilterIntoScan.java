@@ -36,7 +36,7 @@ import org.apache.calcite.rex.RexNode;
 
 import com.google.common.collect.ImmutableList;
 
-public abstract class HBasePushFilterIntoScan extends StoragePluginOptimizerRule {
+public abstract class   HBasePushFilterIntoScan extends StoragePluginOptimizerRule {
 
   private HBasePushFilterIntoScan(RelOptRuleOperand operand, String description) {
     super(operand, description);

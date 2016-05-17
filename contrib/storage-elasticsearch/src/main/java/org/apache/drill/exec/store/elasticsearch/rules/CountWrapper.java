@@ -18,30 +18,48 @@
  */
 package org.apache.drill.exec.store.elasticsearch.rules;
 
+import org.apache.calcite.rel.RelDistribution;
 import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
+import org.apache.calcite.schema.Statistic;
+import org.apache.drill.common.logical.StoragePluginConfig;
+import org.apache.drill.exec.planner.index.IndexStatistic;
+import org.apache.drill.exec.planner.logical.DrillTable;
+import org.apache.drill.exec.store.StoragePlugin;
+import org.apache.drill.exec.store.elasticsearch.ElasticsearchStoragePlugin;
 import org.apache.drill.exec.store.elasticsearch.ElasticsearchStoragePluginConfig;
+import org.apache.drill.exec.store.elasticsearch.schema.DrillElasticsearchTable;
 import org.elasticsearch.action.count.CountRequestBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CountWrapper {
+public class CountWrapper extends IndexStatistic {
 
-  private static final Logger logger = LoggerFactory.getLogger(CountWrapper.class);
+  public CountWrapper(RelNode input, RexNode condition,  DrillTable table) {
+    super(input, condition, table);
+  }
 
-  public static long getCount(RelNode input, RexNode condition, String indexName, ElasticsearchStoragePluginConfig config) {
+  @Override
+  public Double getRowCount() {
     long count = -1;
     try {
-      PredicateAnalyzer.QueryExpression analyzed = PredicateAnalyzer.analyze(input, condition);
+      PredicateAnalyzer.QueryExpression analyzed = PredicateAnalyzer.analyze(this.input, this.condition);
       //String query = PredicateAnalyzer.queryAsJson(analyzed.builder());
-      CountRequestBuilder cb = config.getClient().prepareCount(indexName).setQuery(analyzed.builder());
+      StoragePluginConfig config = this.table.getStorageEngineConfig();
+      ElasticsearchStoragePluginConfig esconfig = config instanceof ElasticsearchStoragePluginConfig? (ElasticsearchStoragePluginConfig)config:null;
+      CountRequestBuilder cb = esconfig.getClient().prepareCount(((DrillElasticsearchTable)this.table).name()).setQuery(analyzed.builder());
       count = cb.get().getCount();
 
     } catch (ExpressionNotAnalyzableException e) {
       logger.warn("Encountered exception while getting COUNT: ", e);
     }
 
-    return count;
+    return new Double(count);
+  }
+
+  @Override
+  public RelDistribution getDistribution() {
+    return null;
   }
 
 }

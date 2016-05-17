@@ -66,7 +66,7 @@ public interface IndexCollection {
    * @param indexCondition The index condition (e.g index_col1 < 10 AND index_col2 = 'abc')
    * @return The estimated row count
    */
-  public double getRows(RexNode indexCondition);
+  public double getRows(RexNode indexCondition, IndexDescriptor idxDesc);
 
   /**
    * Whether or not the index supports getting row count statistics

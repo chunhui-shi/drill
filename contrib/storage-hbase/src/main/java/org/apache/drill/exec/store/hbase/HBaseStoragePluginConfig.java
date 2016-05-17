@@ -72,6 +72,11 @@ public class HBaseStoragePluginConfig extends StoragePluginConfigBase implements
   }
 
   @Override
+  public String getValue(String key) {
+    return config.get(key);
+  }
+
+  @Override
   public boolean equals(Object o) {
     if (this == o) {
       return true;

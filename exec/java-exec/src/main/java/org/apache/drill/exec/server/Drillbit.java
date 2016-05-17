@@ -280,6 +280,7 @@ public class Drillbit implements AutoCloseable {
     try {
       bit.run();
     } catch (final Exception e) {
+      logger.error("Failure during initial startup of Drillbit.", e.getStackTrace());
       bit.close();
       throw new DrillbitStartupException("Failure during initial startup of Drillbit.", e);
     }

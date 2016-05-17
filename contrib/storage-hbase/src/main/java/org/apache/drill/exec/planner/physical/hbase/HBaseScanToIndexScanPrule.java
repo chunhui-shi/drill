@@ -97,7 +97,7 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
       @Override
       public IndexCollection getIndexCollection(PlannerSettings settings, ScanPrel scan) {
         HBaseGroupScan groupScan = (HBaseGroupScan)scan.getGroupScan();
-        return groupScan.getSecondaryIndexCollection();
+        return groupScan.getSecondaryIndexCollection(scan);
       }
 
       @Override
@@ -129,7 +129,7 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
       @Override
       public IndexCollection getIndexCollection(PlannerSettings settings, ScanPrel scan) {
         HBaseGroupScan groupScan = (HBaseGroupScan)scan.getGroupScan();
-        return groupScan.getSecondaryIndexCollection();
+        return groupScan.getSecondaryIndexCollection(scan);
       }
 
       @Override
@@ -258,7 +258,8 @@ public abstract class HBaseScanToIndexScanPrule extends StoragePluginOptimizerRu
 
     try {
       if (collection.supportsRowCountStats()) {
-        double indexRows = collection.getRows(indexCondition);
+        //XXX TODO: what should be the indexDescriptor to use here?
+        double indexRows = collection.getRows(indexCondition, null);
         // get the selectivity of the predicates on the index columns
         double selectivity = indexRows/scan.getRows();
 

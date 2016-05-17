@@ -18,6 +18,7 @@
 package org.apache.drill.exec.physical.base;
 
 import org.apache.drill.exec.planner.index.IndexCollection;
+import org.apache.drill.exec.planner.physical.ScanPrel;
 
 public abstract class AbstractDbGroupScan extends AbstractGroupScan implements DbGroupScan {
   static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AbstractDbGroupScan.class);
@@ -36,7 +37,7 @@ public abstract class AbstractDbGroupScan extends AbstractGroupScan implements D
   }
 
   @Override
-  public IndexCollection getSecondaryIndexCollection() {
+  public IndexCollection getSecondaryIndexCollection(ScanPrel prel) {
     return null;
   }
 

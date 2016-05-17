@@ -20,6 +20,7 @@ package org.apache.drill.exec.physical.base;
 import org.apache.drill.exec.planner.index.IndexCollection;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import org.apache.drill.exec.planner.physical.ScanPrel;
 
 /**
  * A DbGroupScan operator represents the scan associated with a database. The underlying
@@ -35,6 +36,6 @@ public interface DbGroupScan extends GroupScan {
    *
    */
   @JsonIgnore
-  public IndexCollection getSecondaryIndexCollection();
+  public IndexCollection getSecondaryIndexCollection(ScanPrel scan);
 
 }
