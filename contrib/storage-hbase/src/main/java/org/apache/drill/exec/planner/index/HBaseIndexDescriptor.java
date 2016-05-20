@@ -28,6 +28,8 @@ public class HBaseIndexDescriptor extends AbstractIndexDescriptor {
 
     private DrillTable table;
 
+    private String clusterName;
+
     public HBaseIndexDescriptor(List<SchemaPath> indexCols,
                                 List<SchemaPath> nonIndexCols,
                                 List<SchemaPath> rowKeyColumns,
@@ -38,6 +40,12 @@ public class HBaseIndexDescriptor extends AbstractIndexDescriptor {
     }
 
 
+    public String getClusterName() {
+        return clusterName;
+    }
+    public void setClusterName(String cluster) {
+        this.clusterName = cluster;
+    }
 
     public void setDrillTable(DrillTable table) {
         this.table = table;

@@ -19,23 +19,30 @@
 package org.apache.drill.exec.planner.index;
 
 
+import com.mapr.fs.MapRFileSystem;
+import com.mapr.fs.tables.IndexDesc;
+import com.mapr.fs.tables.IndexFieldDesc;
+import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.physical.base.AbstractGroupScan;
 import org.apache.drill.exec.physical.base.GroupScan;
 import org.apache.drill.exec.planner.logical.DrillTable;
 import org.apache.drill.exec.planner.physical.ScanPrel;
 import org.apache.drill.exec.store.AbstractStoragePlugin;
+import org.apache.drill.exec.store.SchemaFactory;
 import org.apache.drill.exec.store.StoragePlugin;
 import org.apache.drill.exec.store.StoragePluginRegistry;
 import org.apache.drill.exec.store.hbase.HBaseGroupScan;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
+import java.io.IOException;
 
+import java.net.URI;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
+import java.util.List;
 import java.util.Set;
 
 public class HBaseIndexDiscover extends AbstractIndexDiscover implements IndexDiscover {
@@ -62,109 +69,132 @@ public class HBaseIndexDiscover extends AbstractIndexDiscover implements IndexDi
 
     @Override
     public IndexCollection getTableIndex(String tableName) {
-        return getTableIndexFromCommandLine(tableName);
+        //return getTableIndexFromCommandLine(tableName);
+        return getTableIndexFromMFS(tableName);
     }
 
-    @Override
-    public Set<IndexDescriptor> getIndexDescriptors(Set<DrillTable> tables) {
-
+    /**
+     *
+     * @param tableName
+     * @return
+     */
+    private IndexCollection getTableIndexFromMFS(String tableName) {
+        MapRFileSystem mfs = getMaprFS();
+        try {
+            Set<HBaseIndexDescriptor> idxSet = new HashSet<>();
+            Collection<IndexDesc> indexes = mfs.getTableIndexes(new Path(tableName));
+            for (IndexDesc idx : indexes) {
+                HBaseIndexDescriptor hbaseIdx = buildIndexDescriptor(tableName, idx);
+                idxSet.add(hbaseIdx);
+            }
+            if(idxSet.size() == 0) {
+                logger.error("No index found for table {}.", tableName);
+                return null;
+            }
+            return new HBaseIndexCollection(scanPrel, idxSet);
+        }
+        catch(IOException ex) {
+            logger.error("Could not get table index from File system. {}", ex.getMessage());
+        }
         return null;
     }
 
-    //XXX temp solution before underlying maprfs system is available.
-    /*
-    idx  throttle  networkcompression  paused  table
-    1    false     lz4                 false   elasticsearch:staffidx/stjson
+    public DrillTable getDrillTable(IndexDescriptor idxDesc) {
 
-    putsPending  type           bucketsPending  networkencryption
-    0            Elasticsearch  0               false
+        HBaseIndexDescriptor hbaseIdx = (HBaseIndexDescriptor)idxDesc;
 
-    bytesPending  maxPendingTS  cluster  minPendingTS  uuid
-    0             0             mapr520  0             d0ef78fc-ce6e-50ed-c1aa-0cd944265700
+        AbstractStoragePlugin idxStorage = null;
+        String idxStorageName = "";
 
-    synchronous  isUptodate  realTablePath
-    false        true        /opt/.../staffidx/stjson/config.es
-    */
-    private IndexCollection getTableIndexFromCommandLine(String tableName) {
-        //1st step is to get list of indexes (replicas in ES, for instance)
-        //maprcli table replica list -path '/tmp/staff'
+        String cluster = hbaseIdx.getClusterName();
+        String[] indexInfo = idxDesc.getIndexName().split("/");
+        if(indexInfo.length <= 1) {
+            logger.error("ES index format should be like index/type but we got {}", idxDesc.getIndexName());
+            return null;
+        }
+        String schema = indexInfo[0];
+        String idxTableName = indexInfo[1];
 
-        List<String> listCommand = new ArrayList<>();
-        listCommand.add("maprcli");
-        listCommand.add("table");
-        listCommand.add("replica");
-        listCommand.add("list");
-        listCommand.add("-path");
-        listCommand.add("'" + tableName + "'");
+        if(idxStorage == null) {
+            StoragePluginRegistry registry = getStorageRegistry();
 
-        List<String> output = new ArrayList<>();
+            for (Map.Entry<String, StoragePlugin> entry : registry) {
+                if (!(entry.getValue() instanceof AbstractStoragePlugin)) {
+                    continue;
+                }
 
-        try {
-            ProcessBuilder pb = new ProcessBuilder(listCommand);
-            Process process = pb.start();
-
-            BufferedReader stdInput = new BufferedReader(new InputStreamReader(process.getInputStream()));
-            BufferedReader stdError = new BufferedReader(new InputStreamReader(process.getErrorStream()));
-
-            String line = "";
-
-            while ((line = stdInput.readLine()) != null) {
-                output.add(line);
+                AbstractStoragePlugin tmpStorage = (AbstractStoragePlugin) entry.getValue();
+                //check config parameters, if they are matching, use this storagePlugIn
+                if (tmpStorage.getConfig().isEnabled() && tmpStorage.getConfig().getValue(ES_CONFIG_KEY_CLUSTER) == cluster) {
+                    idxStorage = tmpStorage;
+                    idxStorageName = entry.getKey();
+                    break;
+                }
             }
         }
-        catch(Exception e) {
 
-        }
-        if(output.size() <= 1) {
-            //no replica, no index
+        //get table object for this index
+        SchemaFactory schemaFactory = idxStorage.getSchemaFactory();
+        if (! ( schemaFactory instanceof IndexDiscoverable ) ) {
+            logger.warn("This Storage plugin does not support IndexDiscoverable interface: " + idxStorage.toString());
             return null;
         }
 
-        List<Map<String, String>> listReplicas = new ArrayList<>();
-        String firstline = output.get(0);
-        String[] columns = firstline.split("[ \t]+");
-
-        for(int i=1; i<output.size(); ++i) {
-            String[] fields = output.get(i).split("[ \t]+");
-            if(fields.length >= columns.length) {
-                Map<String, String> mapFields = new HashMap<>();
-                for(int j=0; j<columns.length; ++j) {
-                    mapFields.put(columns[j], fields[j]);
-                }
-                listReplicas.add(mapFields);
-            }
-        }
-
-        Set<IndexDescriptor> setDesc = getIndexCollection(listReplicas);
-
-        //indexes group by storageEngName, now assume there is only one storage
-        Map<String, IndexCollection> mapCollection = new HashMap<>();
-
-        for (IndexDescriptor desc : setDesc) {
-            HBaseIndexDescriptor hbaseDesc = desc instanceof HBaseIndexDescriptor? (HBaseIndexDescriptor)desc:null;
-            if (hbaseDesc == null) {
-                continue;
-            }
-            AbstractStoragePlugin storage = (AbstractStoragePlugin)hbaseDesc.getDrillTable().getPlugin();
-            String storageName = hbaseDesc.getDrillTable().getStorageEngineName();
-
-            if(! mapCollection.containsKey(storageName)) {
-                HBaseIndexCollection idxCollection =
-                        new HBaseIndexCollection(storage, this.scanPrel, new HashSet<IndexDescriptor>());
-                mapCollection.put(storageName, idxCollection);
-            }
-            mapCollection.get(storageName).addIndex(desc);
-        }
-
-        //XXX we don't support indexes on multiple storage plugins.
-        if (mapCollection.size() > 0 ) {
-            return mapCollection.values().iterator().next();
-        }
-
-        return null;
+        List<String> tableNames = new ArrayList<>();
+        tableNames.add(idxStorageName);
+        tableNames.add(schema);
+        tableNames.add(idxTableName);
+        DrillTable foundTable = ((IndexDiscoverable) schemaFactory).findTable(tableNames);
+        return foundTable;
     }
 
-    private IndexCollection getTableIndexFromMFS(String tableName) {
-        return null;
+    private SchemaPath fieldName2SchemaPath(String fieldName) {
+        return SchemaPath.getSimplePath(fieldName);
     }
+
+    private List<SchemaPath> field2SchemaPath(Collection<IndexFieldDesc> descCollection) {
+        List<SchemaPath> listSchema = new ArrayList<>();
+        for (IndexFieldDesc field: descCollection) {
+            listSchema.add(fieldName2SchemaPath(field.getFieldName()));
+        }
+        return listSchema;
+    }
+
+    private HBaseIndexDescriptor buildIndexDescriptor(String tableName, IndexDesc desc) {
+        List<SchemaPath> rowkey = new ArrayList<>();
+        rowkey.add(fieldName2SchemaPath("row_key"));
+        IndexDescriptor.IndexType idxType = IndexDescriptor.IndexType.NATIVE_SECONDARY_INDEX;
+
+        if (desc.getSystem().equalsIgnoreCase("maprdb")) {
+            idxType = IndexDescriptor.IndexType.EXTERNAL_SECONDARY_INDEX;
+        }
+
+        HBaseIndexDescriptor idx = new HBaseIndexDescriptor (
+                field2SchemaPath(desc.getIndexedFields()),
+                field2SchemaPath(desc.getCoveredFields()),
+                rowkey,
+                desc.getIndexName(),
+                tableName,
+                idxType);
+        idx.setClusterName(desc.getCluster());
+        idx.setDrillTable(getDrillTable(idx));
+        return idx;
+    }
+
+    private MapRFileSystem getMaprFS() {
+        Configuration conf = new Configuration();
+        conf.set("fs.defaultFS", "maprfs:///");
+        conf.set("fs.mapr.disable.namecache", "true");
+
+        try {
+            MapRFileSystem fs = new MapRFileSystem();
+            URI fsuri = new URI(conf.get("fs.defaultFS"));
+            fs.initialize(fsuri, conf);
+            return fs;
+        } catch (Exception var3) {
+            return null;
+        }
+
+    }
+
 }

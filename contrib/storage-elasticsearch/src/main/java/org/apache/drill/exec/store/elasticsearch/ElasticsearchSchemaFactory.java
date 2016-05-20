@@ -72,7 +72,7 @@ public class ElasticsearchSchemaFactory implements SchemaFactory, IndexDiscovera
 
     @Override
     public DrillTable findTable(List<String> names) {
-        //XXX now assume the input names is <storage>.<schema>.<table>
+        //XXX now assume the input names is <storage>,<schema>,<table>
         if(names.size() < 1 ) {
             logger.warn("not enough information for finding a table: " + names.toString());
             return null;

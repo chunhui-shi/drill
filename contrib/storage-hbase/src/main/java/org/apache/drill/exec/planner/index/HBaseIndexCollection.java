@@ -17,44 +17,30 @@
  */
 package org.apache.drill.exec.planner.index;
 
-import org.apache.calcite.rel.RelNode;
 import org.apache.calcite.rex.RexNode;
-import org.apache.drill.exec.physical.base.GroupScan;
 import org.apache.drill.exec.physical.base.IndexGroupScan;
-import org.apache.drill.exec.planner.logical.DrillTable;
 import org.apache.drill.exec.planner.physical.ScanPrel;
 import org.apache.drill.exec.store.StoragePlugin;
 
-import java.io.IOException;
-import java.util.List;
 import java.util.Set;
 
 public class HBaseIndexCollection extends AbstractIndexCollection {
+
 
     private final StoragePlugin storage;
     private final ScanPrel scan;
 
     private String name;
 
-    public HBaseIndexCollection(StoragePlugin inStorage,
-                                ScanPrel prel,
-                                Set<IndexDescriptor> indexes) {
+    public HBaseIndexCollection(ScanPrel prel,
+                                Set<HBaseIndexDescriptor> indexes) {
 
-        this.storage = inStorage;
+        this.storage = indexes.iterator().next().getDrillTable().getPlugin();
         this.scan = prel;
         for (IndexDescriptor index : indexes) {
             super.addIndex(index);
         }
     }
-
-    public void setIndexName(String inName) {
-        this.name = inName;
-    }
-
-    public String getIndexName() {
-        return this.name;
-    }
-
 
     @Override
     public boolean supportsIndexSelection() {

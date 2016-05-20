@@ -18,20 +18,9 @@
 
 package org.apache.drill.exec.planner.index;
 
-import org.apache.drill.common.JSONOptions;
-import org.apache.drill.common.expression.SchemaPath;
 import org.apache.drill.exec.physical.base.AbstractGroupScan;
 import org.apache.drill.exec.planner.logical.DrillTable;
-import org.apache.drill.exec.store.AbstractStoragePlugin;
-import org.apache.drill.exec.store.SchemaFactory;
-import org.apache.drill.exec.store.StoragePlugin;
 import org.apache.drill.exec.store.StoragePluginRegistry;
-
-import java.util.Set;
-import java.util.Map;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.HashSet;
 
 /*
  * AbstractIndexDiscover is the layer to read index configurations of tables on storage plugins,
@@ -51,90 +40,12 @@ public abstract class AbstractIndexDiscover implements IndexDiscover {
     public abstract StoragePluginRegistry getStorageRegistry();
 
     /**
-     * With the provided information, build a list of IndexDescriptor
-     * @param tables
+     * Abstract function getDrillTable will be implemented the IndexDiscover within storage plugin(e.g. HBase, MaprDB)
+     * since the implementations of AbstractStoragePlugin, IndexDescriptor and DrillTable in that storage plugin may have
+     * the implement details.
+     * @param idxDesc
+
      * @return
      */
-    public abstract Set<IndexDescriptor> getIndexDescriptors(Set<DrillTable> tables);
-
-    private DrillTable getDrillTable(Map<String, String> param, AbstractStoragePlugin idxStorage, String idxStorageName) {
-
-        String indexInfo = param.get("table");
-        String[] tableInfo = indexInfo.split(":");
-        String[] pathInfo = new String[2];
-        if(tableInfo.length == 2) {
-            pathInfo = tableInfo[1].split("/");
-        }
-        String cluster = tableInfo[0];
-        String schema = pathInfo[0];
-        String idxTableName = pathInfo[1];
-
-        if(idxStorage == null) {
-            StoragePluginRegistry registry = getStorageRegistry();
-
-            for (Map.Entry<String, StoragePlugin> entry : registry) {
-                if (!(entry.getValue() instanceof AbstractStoragePlugin)) {
-                    continue;
-                }
-
-                AbstractStoragePlugin tmpStorage = (AbstractStoragePlugin) entry.getValue();
-                //check elasticsearch config parameters, if they are matching, use this storagePlugIn
-                if (tmpStorage.getConfig().isEnabled() && tmpStorage.getConfig().getValue(ES_CONFIG_KEY_CLUSTER) == cluster) {
-                    idxStorage = tmpStorage;
-                    idxStorageName = entry.getKey();
-                    break;
-                }
-            }
-        }
-
-        //get table object for this index
-        SchemaFactory schemaFactory = idxStorage.getSchemaFactory();
-        if (! ( schemaFactory instanceof IndexDiscoverable ) ) {
-            logger.warn("This Storage plugin does not support IndexDiscoverable interface: " + idxStorage.toString());
-            return null;
-        }
-
-        List<String> tableNames = new ArrayList<>();
-        tableNames.add(idxStorageName);
-        tableNames.add(schema);
-        tableNames.add(idxTableName);
-        return ((IndexDiscoverable) schemaFactory).findTable(tableNames);
-
-    }
-
-    public Set<IndexDescriptor> getIndexCollection(List<Map<String,String>> indexParams) {
-        //XXX we now consider only one storage plugin for indexes
-
-        AbstractStoragePlugin idxStorage = null;
-
-        Set<DrillTable> tablesAsIndexes = new HashSet<>();
-        DrillTable idxTable = null;
-        for(Map<String, String> param: indexParams) {
-
-            // get the storage and table name(schema+table) of the index
-            idxTable = null;
-            String idxStorageName = null;
-            if(idxStorage == null) {
-                idxTable = getDrillTable(param, null, null);
-                idxStorage = (AbstractStoragePlugin)idxTable.getPlugin();
-                idxStorageName = idxTable.getStorageEngineName();
-            }
-            else {
-                idxTable = getDrillTable(param, idxStorage, idxStorageName);
-            }
-            if (idxTable == null) {
-                logger.error("index table is null for [{}]!", param.toString());
-                return null;
-            }
-            tablesAsIndexes.add(idxTable);
-        }
-
-        //with table objects,IndexDescs (from mfs), construct IndexCollection,
-
-        return getIndexDescriptors(tablesAsIndexes);
-
-    }
-
-
-
+    public abstract DrillTable getDrillTable(IndexDescriptor idxDesc);
 }
