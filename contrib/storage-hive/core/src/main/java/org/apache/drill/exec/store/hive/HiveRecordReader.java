@@ -27,7 +27,9 @@ import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
+import com.google.common.base.Stopwatch;
 import com.google.common.util.concurrent.ListenableFuture;
 import io.netty.buffer.DrillBuf;
 import org.apache.drill.common.exceptions.DrillRuntimeException;
@@ -315,6 +317,8 @@ public class HiveRecordReader extends AbstractRecordReader {
     }
 
     try {
+      Stopwatch timer = Stopwatch.createStarted();
+      Stopwatch copyTimer = Stopwatch.createUnstarted();
       skipRecordsInspector.reset();
       int recordCount = 0;
       Object value;
@@ -328,7 +332,7 @@ public class HiveRecordReader extends AbstractRecordReader {
           if (partTblObjectInspectorConverter != null) {
             deSerializedValue = partTblObjectInspectorConverter.convert(deSerializedValue);
           }
-          readHiveRecordAndInsertIntoRecordBatch(deSerializedValue, skipRecordsInspector.getActualCount());
+          readHiveRecordAndInsertIntoRecordBatch(deSerializedValue, skipRecordsInspector.getActualCount(), copyTimer);
           skipRecordsInspector.incrementActualCount();
         }
         skipRecordsInspector.incrementTempCount();
@@ -336,20 +340,26 @@ public class HiveRecordReader extends AbstractRecordReader {
 
       setValueCountAndPopulatePartitionVectors(skipRecordsInspector.getActualCount());
       skipRecordsInspector.updateContinuance();
+      logger.debug("Took {} ns to read {} records, {} ns to setSafeValue", timer.elapsed(TimeUnit.NANOSECONDS),
+          skipRecordsInspector.getActualCount(),
+          copyTimer.elapsed(TimeUnit.NANOSECONDS));
+      timer.stop();
       return skipRecordsInspector.getActualCount();
     } catch (IOException | SerDeException e) {
       throw new DrillRuntimeException(e);
     }
   }
 
-  private void readHiveRecordAndInsertIntoRecordBatch(Object deSerializedValue, int outputRecordIndex) {
+  private void readHiveRecordAndInsertIntoRecordBatch(Object deSerializedValue, int outputRecordIndex, Stopwatch copyTimer) {
     for (int i = 0; i < selectedColumnNames.size(); i++) {
       final String columnName = selectedColumnNames.get(i);
       Object hiveValue = finalOI.getStructFieldData(deSerializedValue, finalOI.getStructFieldRef(columnName));
 
       if (hiveValue != null) {
+        copyTimer.start();
         selectedColumnFieldConverters.get(i).setSafeValue(selectedColumnObjInspectors.get(i), hiveValue,
             vectors.get(i), outputRecordIndex);
+        copyTimer.stop();
       }
     }
   }
