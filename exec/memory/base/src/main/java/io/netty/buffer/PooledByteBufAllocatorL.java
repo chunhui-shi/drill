@@ -197,7 +197,7 @@ public class PooledByteBufAllocatorL {
 
     @Override
     public ByteBuf heapBuffer(int initialCapacity, int maxCapacity) {
-      throw new UnsupportedOperationException("Drill doesn't support using heap buffers.");
+      return UnpooledByteBufAllocator.DEFAULT.newHeapBuffer(initialCapacity, maxCapacity);
     }
 
 
