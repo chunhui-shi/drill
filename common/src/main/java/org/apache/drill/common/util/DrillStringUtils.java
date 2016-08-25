@@ -160,10 +160,9 @@ public class DrillStringUtils {
    *
    * @return Index in the byte buffer just after the last written byte.
    */
-  public static int parseBinaryString(ByteBuf str, int strStart, int strEnd) {
-    int length = (strEnd - strStart);
-    int dstEnd = strStart;
-    for (int i = strStart; i < strStart+length ; i++) {
+  public static int parseBinaryString(ByteBuf str, int strStart, int strEnd, ByteBuf out) {
+    int dstEnd = 0;
+    for (int i = strStart; i < strEnd ; i++) {
       byte b = str.getByte(i);
       if (b == '\\'
           && strEnd > i+3
@@ -177,7 +176,7 @@ public class DrillStringUtils {
           i += 3; // skip 3
         }
       }
-      str.setByte(dstEnd++, b);
+      out.setByte(dstEnd++, b);
     }
     return dstEnd;
   }
