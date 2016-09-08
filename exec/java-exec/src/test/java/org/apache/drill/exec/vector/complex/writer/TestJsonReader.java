@@ -24,9 +24,11 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.BufferedOutputStream;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.List;
@@ -652,4 +654,44 @@ public class TestJsonReader extends BaseTestQuery {
     }
   }
 
+  @Test // DRILL-4842
+  public void testSelectStarWithAllTextMode() throws Exception {
+    File path = new File(BaseTestQuery.getTempDir("json/input"));
+    path.mkdirs();
+    String pathString = path.toPath().toString();
+
+    try (BufferedWriter writer = new BufferedWriter(new FileWriter(new File(path, "tooManyNulls.json")))) {
+      for (int i = 0; i < JSONRecordReader.DEFAULT_ROWS_PER_BATCH; i++) {
+        writer.write("{ \"c1\" : null }\n");
+      }
+      writer.write("{ \"c1\" : \"Hello World\" }\n");
+    }
+
+    try {
+      testNoResult("alter session set `store.json.all_text_mode` = true");
+      testBuilder()
+        .sqlQuery(String.format("select c1 from dfs_test.`%s/tooManyNulls.json` WHERE c1 IN ('Hello World')", pathString))
+        .unOrdered()
+        .baselineColumns("c1")
+        .baselineValues("Hello World")
+        .go();
+
+      testBuilder()
+        .sqlQuery(String.format("select * from dfs_test.`%s/tooManyNulls.json` WHERE c1 IN ('Hello World')", pathString))
+        .unOrdered()
+        .baselineColumns("c1")
+        .baselineValues("Hello World")
+        .go();
+
+      testBuilder()
+        .sqlQuery(String.format("select * from dfs_test.`%s/tooManyNulls.json` WHERE c1 is not null", pathString))
+        .unOrdered()
+        .baselineColumns("c1")
+        .baselineValues("Hello World")
+        .go();
+
+    } finally {
+      testNoResult("ALTER SESSION reset `store.json.all_text_mode`");
+    }
+  }
 }

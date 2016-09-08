@@ -17,12 +17,14 @@
  */
 package org.apache.drill.exec.vector.complex.fn;
 
+import com.google.common.collect.Sets;
 import io.netty.buffer.DrillBuf;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.BitSet;
 import java.util.List;
+import java.util.Set;
 
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.common.expression.PathSegment;
@@ -54,6 +56,12 @@ public class JsonReader extends BaseJsonProcessor {
   private final ListVectorOutput listOutput;
   private final boolean extended = true;
   private final boolean readNumbersAsDouble;
+
+  /**
+   * Collection for tracking nullable fields during reading
+   * and storing them for creating default typed vectors
+   */
+  private final Set<String> nullableFields  = Sets.newLinkedHashSet();
 
   /**
    * Describes whether or not this reader can unwrap a single root array record and treat it like a set of distinct records.
@@ -131,12 +139,31 @@ public class JsonReader extends BaseJsonProcessor {
       PathSegment fieldPath = fieldPathList.get(j);
       if (emptyStatus.get(j)) {
         if (allTextMode) {
-          fieldWriter.varChar(fieldPath.getNameSegment().getPath());
+          if (checkNullFields(fieldPathList)) {
+            for (String fieldName : nullableFields) {
+              fieldWriter.varChar(fieldName);
+            }
+          } else {
+            fieldWriter.varChar(fieldPath.getNameSegment().getPath());
+          }
         } else {
-          fieldWriter.integer(fieldPath.getNameSegment().getPath());
+          if (checkNullFields(fieldPathList)) {
+            for (String fieldName : nullableFields) {
+              fieldWriter.integer(fieldName);
+            }
+          } else {
+            fieldWriter.integer(fieldPath.getNameSegment().getPath());
+          }
         }
       }
     }
+  }
+
+  /**
+   * Check query having a '*' and existing nullable fields in result
+   */
+  private boolean checkNullFields(List<PathSegment> fieldPathList) {
+    return (fieldPathList.size() == 1) && fieldPathList.get(0).getNameSegment().getPath().equals("*") && !nullableFields.isEmpty();
   }
 
   public void setSource(int start, int end, DrillBuf buf) throws IOException {
@@ -337,6 +364,7 @@ public class JsonReader extends BaseJsonProcessor {
           continue outside;
         }
 
+        nullableFields.remove(fieldName);
         switch (parser.nextToken()) {
         case START_ARRAY:
           writeData(map.list(fieldName));
@@ -358,6 +386,7 @@ public class JsonReader extends BaseJsonProcessor {
           break;
         }
         case VALUE_NULL:
+          nullableFields.add(fieldName);
           // do nothing as we don't have a type.
           break;
         case VALUE_NUMBER_FLOAT:
@@ -418,6 +447,7 @@ public class JsonReader extends BaseJsonProcessor {
         continue outside;
       }
 
+      nullableFields.remove(fieldName);
       switch (parser.nextToken()) {
       case START_ARRAY:
         writeDataAllText(map.list(fieldName));
@@ -439,7 +469,7 @@ public class JsonReader extends BaseJsonProcessor {
         handleString(parser, map, fieldName);
         break;
       case VALUE_NULL:
-        // do nothing as we don't have a type.
+        nullableFields.add(fieldName);
         break;
 
       default:
