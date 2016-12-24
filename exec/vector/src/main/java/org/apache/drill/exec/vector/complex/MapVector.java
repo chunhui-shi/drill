@@ -134,10 +134,10 @@ public class MapVector extends AbstractMapVector {
 
   @Override
   public DrillBuf[] getBuffers(boolean clear) {
-    int expectedSize = getBufferSize();
-    int actualSize   = super.getBufferSize();
+    //int expectedSize = getBufferSize();
+    //int actualSize   = super.getBufferSize();
 
-    Preconditions.checkArgument(expectedSize == actualSize);
+    //Preconditions.checkArgument(expectedSize == actualSize);
     return super.getBuffers(clear);
   }
 
