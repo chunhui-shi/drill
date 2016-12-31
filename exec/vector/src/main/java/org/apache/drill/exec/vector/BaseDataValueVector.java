@@ -71,12 +71,18 @@ public abstract class BaseDataValueVector extends BaseValueVector {
   }
 
   @Override
+  public <R> R accept(ValueVectorVisitor<R> visitor) {
+    return visitor.visitBaseData(this);
+  }
+
+  @Override
   public int getBufferSize() {
     if (getAccessor().getValueCount() == 0) {
       return 0;
     }
     return data.writerIndex();
   }
+
 
   public DrillBuf getBuffer() {
     return data;

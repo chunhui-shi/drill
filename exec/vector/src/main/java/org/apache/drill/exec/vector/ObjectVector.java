@@ -119,6 +119,12 @@ public class ObjectVector extends BaseValueVector {
   }
 
   @Override
+  public <R> R accept(ValueVectorVisitor<R> visitor) {
+    return visitor.visitObject(this);
+  }
+
+
+  @Override
   public int getBufferSize() {
     throw new UnsupportedOperationException("ObjectVector does not support this");
   }

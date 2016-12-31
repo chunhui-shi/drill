@@ -39,6 +39,7 @@ import org.apache.drill.exec.vector.AddOrGetResult;
 import org.apache.drill.exec.util.CallBack;
 import org.apache.drill.exec.vector.UInt4Vector;
 import org.apache.drill.exec.vector.ValueVector;
+import org.apache.drill.exec.vector.ValueVectorVisitor;
 import org.apache.drill.exec.vector.VectorDescriptor;
 import org.apache.drill.exec.vector.complex.impl.NullReader;
 import org.apache.drill.exec.vector.complex.impl.RepeatedListReaderImpl;
@@ -257,7 +258,10 @@ public class RepeatedListVector extends AbstractContainerVector
     this(field, allocator, callBack, new DelegateRepeatedVector(field, allocator));
   }
 
-  protected RepeatedListVector(MaterializedField field, BufferAllocator allocator, CallBack callBack, DelegateRepeatedVector delegate) {
+  protected RepeatedListVector(MaterializedField field,
+                               BufferAllocator allocator,
+                               CallBack callBack,
+                               DelegateRepeatedVector delegate) {
     super(field, allocator, callBack);
     this.delegate = Preconditions.checkNotNull(delegate);
 
@@ -273,7 +277,7 @@ public class RepeatedListVector extends AbstractContainerVector
   }
 
 
-    @Override
+  @Override
   public RepeatedListReaderImpl getReader() {
     return reader;
   }
@@ -321,6 +325,11 @@ public class RepeatedListVector extends AbstractContainerVector
   @Override
   public int size() {
     return delegate.size();
+  }
+
+  @Override
+  public <R> R accept(ValueVectorVisitor<R> visitor) {
+    return visitor.visitRepeatedList(this);
   }
 
   @Override

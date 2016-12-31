@@ -33,6 +33,7 @@ import org.apache.drill.exec.vector.AddOrGetResult;
 import org.apache.drill.exec.vector.BaseValueVector;
 import org.apache.drill.exec.vector.UInt4Vector;
 import org.apache.drill.exec.vector.ValueVector;
+import org.apache.drill.exec.vector.ValueVectorVisitor;
 import org.apache.drill.exec.vector.VectorDescriptor;
 import org.apache.drill.exec.vector.ZeroVector;
 
@@ -114,6 +115,12 @@ public abstract class BaseRepeatedValueVector extends BaseValueVector implements
     return super.getMetadataBuilder()
         .addChild(offsets.getMetadata())
         .addChild(vector.getMetadata());
+  }
+
+
+  @Override
+  public <R> R accept(ValueVectorVisitor<R> visitor) {
+    return visitor.visitBaseRepeated(this);
   }
 
   @Override

@@ -33,6 +33,7 @@ import org.apache.drill.exec.vector.AddOrGetResult;
 import org.apache.drill.exec.vector.UInt1Vector;
 import org.apache.drill.exec.vector.UInt4Vector;
 import org.apache.drill.exec.vector.ValueVector;
+import org.apache.drill.exec.vector.ValueVectorVisitor;
 import org.apache.drill.exec.vector.VectorDescriptor;
 import org.apache.drill.exec.vector.ZeroVector;
 import org.apache.drill.exec.vector.complex.impl.ComplexCopier;
@@ -201,6 +202,11 @@ public class ListVector extends BaseRepeatedValueVector {
     AddOrGetResult<T> result = super.addOrGetVector(descriptor);
     reader = new UnionListReader(this);
     return result;
+  }
+
+  @Override
+  public <R> R accept(ValueVectorVisitor<R> visitor) {
+    return visitor.visitList(this);
   }
 
   @Override

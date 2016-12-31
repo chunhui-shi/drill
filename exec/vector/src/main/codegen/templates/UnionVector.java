@@ -18,6 +18,7 @@
 
 import org.apache.drill.common.types.TypeProtos.MinorType;
 import org.apache.drill.exec.vector.ValueVector;
+import org.apache.drill.exec.vector.ValueVectorVisitor;
 
 <@pp.dropOutputFile />
 <@pp.changeOutputFile name="/org/apache/drill/exec/vector/complex/UnionVector.java" />
@@ -100,6 +101,10 @@ public class UnionVector implements ValueVector {
   }
 
   private static final MajorType MAP_TYPE = Types.optional(MinorType.MAP);
+
+  public MapVector getInternalMap() {
+    return this.internalMap;
+  }
 
   public MapVector getMap() {
     if (mapVector == null) {
@@ -312,6 +317,12 @@ public class UnionVector implements ValueVector {
     return b.build();
   }
 
+
+  @Override
+  public <R> R accept(ValueVectorVisitor<R> visitor) {
+    return visitor.visitMap(internalMap);
+  }
+
   @Override
   public int getBufferSize() {
     return internalMap.getBufferSize();
@@ -349,6 +360,7 @@ public class UnionVector implements ValueVector {
     vectors.add(typeVector);
     return vectors.iterator();
   }
+
 
   public class Accessor extends BaseValueVector.BaseAccessor {
 
@@ -468,5 +480,6 @@ public class UnionVector implements ValueVector {
 
     @Override
     public void generateTestData(int values) { }
+
   }
 }

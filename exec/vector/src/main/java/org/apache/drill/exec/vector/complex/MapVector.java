@@ -40,6 +40,8 @@ import org.apache.drill.exec.util.JsonStringHashMap;
 import org.apache.drill.exec.vector.BaseValueVector;
 import org.apache.drill.exec.vector.SchemaChangeCallBack;
 import org.apache.drill.exec.vector.ValueVector;
+import org.apache.drill.exec.vector.ValueVectorContext;
+import org.apache.drill.exec.vector.ValueVectorVisitor;
 import org.apache.drill.exec.vector.complex.RepeatedMapVector.MapSingleCopier;
 import org.apache.drill.exec.vector.complex.impl.SingleMapReaderImpl;
 import org.apache.drill.exec.vector.complex.reader.FieldReader;
@@ -103,6 +105,11 @@ public class MapVector extends AbstractMapVector {
     for (final ValueVector v : (Iterable<ValueVector>) this) {
       v.setInitialCapacity(numRecords);
     }
+  }
+
+  @Override
+  public <R> R accept(ValueVectorVisitor<R> visitor) {
+    return visitor.visitMap(this);
   }
 
   @Override

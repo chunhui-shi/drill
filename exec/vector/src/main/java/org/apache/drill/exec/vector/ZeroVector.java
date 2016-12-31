@@ -176,4 +176,9 @@ public class ZeroVector implements ValueVector {
 
   @Override
   public void load(UserBitShared.SerializedField metadata, DrillBuf buffer) { }
+
+  @Override
+  public <R> R accept(ValueVectorVisitor<R> visitor) {
+    return visitor.visitZero(this);
+  }
 }

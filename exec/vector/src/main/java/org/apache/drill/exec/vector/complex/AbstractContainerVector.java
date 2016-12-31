@@ -35,6 +35,7 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Sets;
 
+
 /**
  * Base class for composite vectors.
  *
@@ -142,4 +143,5 @@ public abstract class AbstractContainerVector implements ValueVector {
 
   // return the child vector's ordinal in the composite container
   public abstract VectorWithOrdinal getChildVectorWithOrdinal(String name);
+
 }

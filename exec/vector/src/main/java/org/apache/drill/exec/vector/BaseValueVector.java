@@ -124,5 +124,7 @@ public abstract class BaseValueVector implements ValueVector {
   public BufferAllocator getAllocator() {
     return allocator;
   }
+
+
 }
 

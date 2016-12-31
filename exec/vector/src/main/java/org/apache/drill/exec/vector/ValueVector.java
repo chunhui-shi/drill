@@ -136,6 +136,9 @@ public interface ValueVector extends Closeable, Iterable<ValueVector> {
    */
   SerializedField getMetadata();
 
+  <R> R accept(ValueVectorVisitor<R> visitor);
+  //boolean verifyBufferSize(ValueVectorContext ctx);
+  //int getBufferSize(ValueVectorContext ctx);
   /**
    * Returns the number of bytes that is used by this vector instance.
    */

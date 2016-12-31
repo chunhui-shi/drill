@@ -42,6 +42,7 @@ import org.apache.drill.exec.vector.AddOrGetResult;
 import org.apache.drill.exec.vector.AllocationHelper;
 import org.apache.drill.exec.vector.UInt4Vector;
 import org.apache.drill.exec.vector.ValueVector;
+import org.apache.drill.exec.vector.ValueVectorVisitor;
 import org.apache.drill.exec.vector.VectorDescriptor;
 import org.apache.drill.exec.vector.SchemaChangeCallBack;
 import org.apache.drill.exec.vector.complex.impl.NullReader;
@@ -122,6 +123,11 @@ public class RepeatedMapVector extends AbstractMapVector
     final List<ValueVector> primitiveVectors = super.getPrimitiveVectors();
     primitiveVectors.add(offsets);
     return primitiveVectors;
+  }
+
+  @Override
+  public <R> R accept(ValueVectorVisitor<R> visitor) {
+    return visitor.visitRepeatedMap(this);
   }
 
   @Override
@@ -413,10 +419,10 @@ public class RepeatedMapVector extends AbstractMapVector
 
   @Override
   public DrillBuf[] getBuffers(boolean clear) {
-    final int expectedBufferSize = getBufferSize();
-    final int actualBufferSize = super.getBufferSize();
+    //final int expectedBufferSize = getBufferSize();
+    //final int actualBufferSize = super.getBufferSize();
 
-    Preconditions.checkArgument(expectedBufferSize == actualBufferSize + offsets.getBufferSize());
+    //Preconditions.checkArgument(expectedBufferSize == actualBufferSize + offsets.getBufferSize());
     return ArrayUtils.addAll(offsets.getBuffers(clear), super.getBuffers(clear));
   }
 

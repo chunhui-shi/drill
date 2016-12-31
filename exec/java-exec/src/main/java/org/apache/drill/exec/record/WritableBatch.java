@@ -29,6 +29,7 @@ import org.apache.drill.exec.vector.ValueVector;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import org.apache.drill.exec.vector.ValueVectorContext;
 
 /**
  * A specialized version of record batch that can moves out buffers and preps them for writing.
@@ -152,7 +153,12 @@ public class WritableBatch implements AutoCloseable {
     List<DrillBuf> buffers = Lists.newArrayList();
     List<SerializedField> metadata = Lists.newArrayList();
 
+    //ValueVectorContext localCtx = new ValueVectorContext();
     for (ValueVector vv : vectors) {
+      VVBufSizeVerifier verifier = new VVBufSizeVerifier();
+      BufSizeResult sizeResult = vv.accept(verifier);
+      Preconditions.checkArgument(sizeResult.correct);
+      //Preconditions.checkArgument(vv.verifyBufferSize(localCtx));
       metadata.add(vv.getMetadata());
 
       // don't try to get the buffers if we don't have any records. It is possible the buffers are dead buffers.
