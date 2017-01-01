@@ -100,6 +100,10 @@ public class ListVector extends BaseRepeatedValueVector {
     return vector;
   }
 
+  public ValueVector getBitsVector() {
+    return bits;
+  }
+
   @Override
   public TransferPair getTransferPair(String ref, BufferAllocator allocator) {
     return new TransferImpl(field.withPath(ref), allocator);

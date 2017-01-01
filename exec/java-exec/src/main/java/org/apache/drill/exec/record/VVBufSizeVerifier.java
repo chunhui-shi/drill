@@ -56,7 +56,7 @@ public class VVBufSizeVerifier implements ValueVectorVisitor<BufSizeResult> {
 
   @Override
   public BufSizeResult visitBaseData(BaseDataValueVector vv) {
-    return new BufSizeResult(true, vv.getBufferSize(), vv.getBufferSize());
+    return new BufSizeResult(true, vv.getBufferSize(), vv.getBuffer().writerIndex());
   }
 
   @Override
@@ -86,6 +86,19 @@ public class VVBufSizeVerifier implements ValueVectorVisitor<BufSizeResult> {
   }
 
   @Override
+  public BufSizeResult visitRepeatedMap(RepeatedMapVector vv ) {
+    BufSizeResult ret = new BufSizeResult(true, 0, 0);
+    ret.add(vv.getOffsetVector().accept(this));
+    for (ValueVector ivv: vv) {
+      if (ret.correct == false) {
+        break;
+      }
+      ret.add(ivv.accept(this));
+    }
+    return ret;
+  }
+
+  @Override
   public BufSizeResult  visitUnion(UnionVector vv) {
     return visitMap(vv.getInternalMap());
   }
@@ -96,17 +109,22 @@ public class VVBufSizeVerifier implements ValueVectorVisitor<BufSizeResult> {
   }
 
   @Override
-  public BufSizeResult visitRepeatedMap(RepeatedMapVector vv ) {
-    return new BufSizeResult();
-  }
-
-  @Override
   public BufSizeResult visitList(ListVector vv ) {
-    return new BufSizeResult();
+    BufSizeResult ret = vv.getBitsVector().accept(this);
+    ret.add(vv.getDataVector().accept(this));
+    ret.add(vv.getOffsetVector().accept(this));
+    return ret;
   }
 
   @Override
   public BufSizeResult visitRepeatedList(RepeatedListVector vv ) {
-    return new BufSizeResult();
+    BufSizeResult ret = new BufSizeResult(true, 0, 0);
+    for(ValueVector ivv: vv) {
+      ret.add(ivv.accept(this));
+      if(ret.correct == false) {
+        return ret;
+      }
+    }
+    return ret;
   }
 }

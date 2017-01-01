@@ -329,7 +329,7 @@ public class RepeatedListVector extends AbstractContainerVector
 
   @Override
   public <R> R accept(ValueVectorVisitor<R> visitor) {
-    return visitor.visitRepeatedList(this);
+    return this.delegate.accept(visitor);
   }
 
   @Override
