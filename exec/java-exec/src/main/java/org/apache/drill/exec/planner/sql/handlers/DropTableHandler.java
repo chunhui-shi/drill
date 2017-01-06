@@ -59,11 +59,11 @@ public class DropTableHandler extends DefaultSqlHandler {
     SqlDropTable dropTableNode = ((SqlDropTable) sqlNode);
     SqlIdentifier tableIdentifier = dropTableNode.getTableIdentifier();
 
-    SchemaPlus defaultSchema = config.getConverter().getDefaultSchema();
     AbstractSchema drillSchema = null;
 
     if (tableIdentifier != null) {
-      drillSchema = SchemaUtilites.resolveToMutableDrillSchema(defaultSchema, dropTableNode.getSchema());
+      drillSchema = SchemaUtilites.toMutableDrillSchema(
+          config.getConverter().getExpandedDefaultSchema(dropTableNode.getSchema()));
     }
 
     String tableName = dropTableNode.getName();

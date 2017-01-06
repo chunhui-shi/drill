@@ -18,6 +18,7 @@
 package org.apache.drill.exec.planner.sql;
 
 import java.io.IOException;
+import java.util.Set;
 
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.parser.SqlParseException;
@@ -58,15 +59,16 @@ public class DrillSqlWorker {
   public static PhysicalPlan getPlan(QueryContext context, String sql, Pointer<String> textPlan)
       throws ForemanSetupException {
 
-    final SqlConverter parser = new SqlConverter(
+    final SqlConverter parser = new SqlConverter(context,
         context.getPlannerSettings(),
-        context.getNewDefaultSchema(),
+        context.getPartialDefaultSchema(),
         context.getDrillOperatorTable(),
         (UdfUtilities) context,
         context.getFunctionRegistry());
 
     injector.injectChecked(context.getExecutionControls(), "sql-parsing", ForemanSetupException.class);
     final SqlNode sqlNode = parser.parse(sql);
+
     final AbstractSqlHandler handler;
     final SqlHandlerConfig config = new SqlHandlerConfig(context, parser);
 

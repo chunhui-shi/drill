@@ -78,8 +78,7 @@ public class CreateTableHandler extends DefaultSqlHandler {
         SqlHandlerUtil.resolveNewTableRel(false, sqlCreateTable.getFieldNames(), validatedRowType, queryRelNode);
 
     final AbstractSchema drillSchema =
-        SchemaUtilites.resolveToMutableDrillSchema(config.getConverter().getDefaultSchema(),
-            sqlCreateTable.getSchemaPath());
+        SchemaUtilites.toMutableDrillSchema(config.getConverter().getExpandedDefaultSchema(sqlCreateTable.getSchemaPath()));
     final String schemaPath = drillSchema.getFullSchemaName();
 
     if (SqlHandlerUtil.getTableFromSchema(drillSchema, newTblName) != null) {

@@ -211,7 +211,7 @@ public class UserSession {
 
     if (defaultSchema == null) {
       // If the current schema resolves to null, return root schema as the current default schema.
-      return defaultSchema;
+      return rootSchema;
     }
 
     return defaultSchema;

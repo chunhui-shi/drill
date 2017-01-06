@@ -17,6 +17,7 @@
  */
 package org.apache.drill.exec.planner.sql;
 
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -25,8 +26,9 @@ import com.google.common.collect.Sets;
 import org.apache.calcite.adapter.java.JavaTypeFactory;
 import org.apache.calcite.avatica.util.Casing;
 import org.apache.calcite.avatica.util.Quoting;
-import org.apache.calcite.jdbc.CalciteSchemaImpl;
+import org.apache.calcite.jdbc.CalciteSchema;
 import org.apache.calcite.jdbc.JavaTypeFactoryImpl;
+import org.apache.calcite.jdbc.SimpleCalciteSchema;
 import org.apache.calcite.plan.ConventionTraitDef;
 import org.apache.calcite.plan.RelOptCluster;
 import org.apache.calcite.plan.RelOptCostFactory;
@@ -41,17 +43,14 @@ import org.apache.calcite.rel.type.RelDataTypeSystemImpl;
 import org.apache.calcite.rex.RexBuilder;
 import org.apache.calcite.rex.RexNode;
 import org.apache.calcite.schema.SchemaPlus;
-import org.apache.calcite.sql.SqlCall;
 import org.apache.calcite.sql.SqlNode;
 import org.apache.calcite.sql.SqlOperatorTable;
-import org.apache.calcite.sql.SqlSelect;
 import org.apache.calcite.sql.parser.SqlParseException;
 import org.apache.calcite.sql.parser.SqlParser;
 import org.apache.calcite.sql.parser.SqlParserImplFactory;
 import org.apache.calcite.sql.parser.SqlParserPos;
 import org.apache.calcite.sql.type.SqlTypeName;
 import org.apache.calcite.sql.util.ChainedSqlOperatorTable;
-import org.apache.calcite.sql.validate.AggregatingSelectScope;
 import org.apache.calcite.sql.validate.SqlConformance;
 import org.apache.calcite.sql.validate.SqlValidatorCatalogReader;
 import org.apache.calcite.sql.validate.SqlValidatorException;
@@ -64,12 +63,12 @@ import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.exec.exception.FunctionNotFoundException;
 import org.apache.drill.exec.expr.fn.FunctionImplementationRegistry;
+import org.apache.drill.exec.ops.QueryContext;
 import org.apache.drill.exec.ops.UdfUtilities;
 import org.apache.drill.exec.planner.cost.DrillCostBase;
 import org.apache.drill.exec.planner.logical.DrillConstExecutor;
 import org.apache.drill.exec.planner.physical.DrillDistributionTraitDef;
 import org.apache.drill.exec.planner.physical.PlannerSettings;
-import org.apache.drill.exec.planner.physical.PrelUtil;
 import org.apache.drill.exec.planner.sql.parser.impl.DrillParserWithCompoundIdConverter;
 
 import com.google.common.base.Joiner;
@@ -86,13 +85,17 @@ public class SqlConverter {
   private final SqlParser.Config parserConfig;
   // Allow the default config to be modified using immutable configs
   private SqlToRelConverter.Config sqlToRelConverterConfig;
-  private final CalciteCatalogReader catalog;
+
   private final PlannerSettings settings;
-  private final SchemaPlus rootSchema;
-  private final SchemaPlus defaultSchema;
-  private final SqlOperatorTable opTab;
+
+  private DrillCatalogReader catalog;
+  private SchemaPlus rootSchema;
+  private SchemaPlus defaultSchema;
+  private SqlOperatorTable opTab;
+  private DrillValidator validator;
+
   private final RelOptCostFactory costFactory;
-  private final DrillValidator validator;
+
   private final boolean isInnerQuery;
   private final UdfUtilities util;
   private final FunctionImplementationRegistry functions;
@@ -100,8 +103,7 @@ public class SqlConverter {
   private String sql;
   private VolcanoPlanner planner;
 
-
-  public SqlConverter(PlannerSettings settings, SchemaPlus defaultSchema,
+  public SqlConverter(QueryContext context, PlannerSettings settings, SchemaPlus defaultSchema,
       final SqlOperatorTable operatorTable, UdfUtilities util, FunctionImplementationRegistry functions) {
     this.settings = settings;
     this.util = util;
@@ -110,17 +112,33 @@ public class SqlConverter {
     this.sqlToRelConverterConfig = new SqlToRelConverterConfig();
     this.isInnerQuery = false;
     this.typeFactory = new JavaTypeFactoryImpl(DRILL_TYPE_SYSTEM);
-    this.defaultSchema = defaultSchema;
-    this.rootSchema = rootSchema(defaultSchema);
-    this.catalog = new CalciteCatalogReader(
-        CalciteSchemaImpl.from(rootSchema),
+
+    this.costFactory = (settings.useDefaultCosting()) ? null : new DrillCostBase.DrillCostFactory();
+
+    this.defaultSchema = defaultSchema == null? SimpleCalciteSchema.createRootSchema(false) : defaultSchema;
+    this.rootSchema = rootSchema(this.defaultSchema);
+
+    this.catalog = new DrillCatalogReader(
+        context,
+        SimpleCalciteSchema.from(this.rootSchema),
         parserConfig.caseSensitive(),
-        CalciteSchemaImpl.from(defaultSchema).path(null),
+        SimpleCalciteSchema.from(this.defaultSchema).path(null),
         typeFactory);
     this.opTab = new ChainedSqlOperatorTable(Arrays.asList(operatorTable, catalog));
-    this.costFactory = (settings.useDefaultCosting()) ? null : new DrillCostBase.DrillCostFactory();
     this.validator = new DrillValidator(opTab, catalog, typeFactory, SqlConformance.DEFAULT);
     validator.setIdentifierExpansion(true);
+  }
+
+  public SqlConverter(PlannerSettings settings, UdfUtilities util, FunctionImplementationRegistry functions) {
+    this.settings = settings;
+    this.util = util;
+    this.functions = functions;
+    this.parserConfig = new ParserConfig();
+    this.sqlToRelConverterConfig = new SqlToRelConverterConfig();
+    this.isInnerQuery = false;
+    this.typeFactory = new JavaTypeFactoryImpl(DRILL_TYPE_SYSTEM);
+
+    this.costFactory = (settings.useDefaultCosting()) ? null : new DrillCostBase.DrillCostFactory();
   }
 
   private SqlConverter(SqlConverter parent, SchemaPlus defaultSchema, SchemaPlus rootSchema,
@@ -135,13 +153,12 @@ public class SqlConverter {
     this.costFactory = parent.costFactory;
     this.settings = parent.settings;
     this.rootSchema = rootSchema;
-    this.catalog = catalog;
+    this.catalog = (DrillCatalogReader)catalog;
     this.opTab = parent.opTab;
     this.planner = parent.planner;
     this.validator = new DrillValidator(opTab, catalog, typeFactory, SqlConformance.DEFAULT);
     validator.setIdentifierExpansion(true);
   }
-
 
   public SqlNode parse(String sql) {
     try {
@@ -201,6 +218,20 @@ public class SqlConverter {
 
   public SchemaPlus getDefaultSchema() {
     return defaultSchema;
+  }
+
+  public SchemaPlus getExpandedDefaultSchema(List<String> schemaPaths) {
+    SchemaPlus workspaceSchema = catalog.getSchema(catalog.getSchemaName()).plus();
+    SchemaPlus retSchema = SchemaUtilites.findSchema(workspaceSchema, schemaPaths);
+    if (retSchema != null) {
+      return retSchema;
+    }
+    //else get it from rootSchema
+    CalciteSchema calSchema = catalog.getSchema(schemaPaths);
+    if (calSchema != null) {
+      return calSchema.plus();
+    }
+    return null;
   }
 
   private class DrillValidator extends SqlValidatorImpl {
@@ -287,8 +318,9 @@ public class SqlConverter {
         String queryString,
         SchemaPlus rootSchema, // new root schema
         List<String> schemaPath) {
-      final CalciteCatalogReader catalogReader = new CalciteCatalogReader(
-          CalciteSchemaImpl.from(rootSchema),
+      final DrillCatalogReader catalogReader = new DrillCatalogReader(
+          catalog.getQueryContext(),
+          SimpleCalciteSchema.from(rootSchema),
           parserConfig.caseSensitive(),
           schemaPath,
           typeFactory);
