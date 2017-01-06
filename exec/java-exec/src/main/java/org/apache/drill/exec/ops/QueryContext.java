@@ -24,6 +24,7 @@ import io.netty.buffer.DrillBuf;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.calcite.schema.SchemaPlus;
 import org.apache.drill.common.AutoCloseables;
@@ -137,6 +138,25 @@ public class QueryContext implements AutoCloseable, OptimizerRulesContext, Schem
     return defaultSchema;
   }
 
+  public SchemaPlus getPartialDefaultSchema() {
+
+    final String sessionSchemaPath = session.getDefaultSchemaPath();
+    final List<String> schemaPathAsList = Lists.newArrayList(sessionSchemaPath.split("\\."));
+
+    final SchemaPlus rootSchema = schemaTreeProvider.createPartialRootSchema(getQueryUserName(),
+        this, schemaPathAsList.get(0));
+
+    final SchemaPlus defaultSchema = session.getDefaultSchema(rootSchema);
+
+    if (defaultSchema == null) {
+      return rootSchema;
+    }
+    return defaultSchema;
+  }
+
+  public void addNewRelevantSchema(Set<String> storages, SchemaPlus toExpandSchema) {
+    schemaTreeProvider.addPartialRootSchema(getQueryUserName(), this, storages, toExpandSchema);
+  }
   /**
    * Get root schema with schema owner as the user who issued the query that is managed by this QueryContext.
    * @return Root of the schema tree.
@@ -233,6 +253,10 @@ public class QueryContext implements AutoCloseable, OptimizerRulesContext, Schem
 
   public RemoteFunctionRegistry getRemoteFunctionRegistry() {
     return drillbitContext.getRemoteFunctionRegistry();
+  }
+
+  public SchemaTreeProvider getSchemaTreeProvider() {
+    return schemaTreeProvider;
   }
 
   @Override

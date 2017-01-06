@@ -59,6 +59,7 @@ public class DropTableHandler extends DefaultSqlHandler {
   @Override
   public PhysicalPlan getPlan(SqlNode sqlNode) throws ValidationException, RelConversionException, IOException {
     SqlDropTable dropTableNode = ((SqlDropTable) sqlNode);
+
     String originalTableName = dropTableNode.getName();
     SchemaPlus defaultSchema = config.getConverter().getDefaultSchema();
     List<String> tableSchema = dropTableNode.getSchema();
@@ -71,7 +72,9 @@ public class DropTableHandler extends DefaultSqlHandler {
     if (isTemporaryTable) {
       session.removeTemporaryTable(temporarySchema, originalTableName);
     } else {
-      AbstractSchema drillSchema = SchemaUtilites.resolveToMutableDrillSchema(defaultSchema, tableSchema);
+      AbstractSchema drillSchema =  SchemaUtilites.toMutableDrillSchema(
+          config.getConverter().getExpandedDefaultSchema(dropTableNode.getSchema()));
+
       Table tableToDrop = SqlHandlerUtil.getTableFromSchema(drillSchema, originalTableName);
       if (tableToDrop == null || tableToDrop.getJdbcTableType() != Schema.TableType.TABLE) {
         if (dropTableNode.checkTableExistence()) {
