@@ -46,6 +46,7 @@ import org.apache.drill.exec.server.options.QueryOptionManager;
 import org.apache.drill.exec.server.options.SessionOptionManager;
 import org.apache.drill.exec.server.options.SystemOptionManager;
 import org.apache.drill.exec.store.SchemaConfig;
+import org.apache.drill.exec.store.SchemaTreeProvider;
 import org.apache.drill.exec.store.StoragePluginRegistry;
 import org.apache.drill.exec.store.StoragePluginRegistryImpl;
 import org.apache.drill.exec.store.sys.store.provider.LocalPersistentStoreProvider;
@@ -112,6 +113,7 @@ public class PlanningBase extends ExecTest{
     final FunctionImplementationRegistry functionRegistry = new FunctionImplementationRegistry(config);
     final DrillOperatorTable table = new DrillOperatorTable(functionRegistry, systemOptions);
     final SchemaPlus root = SimpleCalciteSchema.createRootSchema(false);
+    final SchemaTreeProvider schemaTreeProvider = new SchemaTreeProvider(dbContext);
     registry.getSchemaFactory().registerSchemas(SchemaConfig.newBuilder("foo", context).build(), root);
 
     new NonStrictExpectations() {
@@ -142,8 +144,10 @@ public class PlanningBase extends ExecTest{
         result = allocator;
         context.getExecutionControls();
         result = executionControls;
-        dbContext.getLpPersistence();
-        result = logicalPlanPersistence;
+        context.getSchemaTreeProvider();
+        result = schemaTreeProvider;
+        dbContext.getStorage();
+        result = registry;
       }
     };
 
