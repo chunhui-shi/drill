@@ -80,10 +80,11 @@ public class CreateTableHandler extends DefaultSqlHandler {
     final RelNode newTblRelNode =
         SqlHandlerUtil.resolveNewTableRel(false, sqlCreateTable.getFieldNames(), validatedRowType, queryRelNode);
 
-    final DrillConfig drillConfig = context.getConfig();
-    final AbstractSchema drillSchema = resolveSchema(sqlCreateTable, config.getConverter().getDefaultSchema(), drillConfig);
 
-    checkDuplicatedObjectExistence(drillSchema, originalTableName, drillConfig, context.getSession());
+    final AbstractSchema drillSchema =
+        SchemaUtilites.toMutableDrillSchema(config.getConverter().getExpandedDefaultSchema(sqlCreateTable.getSchemaPath()));
+
+    checkDuplicatedObjectExistence(drillSchema, originalTableName, context.getConfig(), context.getSession());
 
     final RelNode newTblRelNodeWithPCol = SqlHandlerUtil.qualifyPartitionCol(newTblRelNode,
         sqlCreateTable.getPartitionColumns());
