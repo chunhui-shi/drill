@@ -22,7 +22,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import org.apache.calcite.schema.Function;
 import org.apache.calcite.schema.Schema;
 import org.apache.calcite.schema.SchemaPlus;
@@ -39,8 +44,10 @@ import org.apache.drill.exec.store.dfs.WorkspaceSchemaFactory.WorkspaceSchema;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Maps;
+import org.apache.drill.exec.util.ImpersonationUtil;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.security.UserGroupInformation;
 
 
 /**
@@ -54,6 +61,68 @@ public class FileSystemSchemaFactory implements SchemaFactory{
   private List<WorkspaceSchemaFactory> factories;
   private String schemaName;
 
+
+  private final LoadingCache<SchemaKey, FileSystemSchema> fsSchemaCache = CacheBuilder.newBuilder()
+      .maximumSize(100)
+      .expireAfterWrite(1000, TimeUnit.MILLISECONDS)
+      .build(new FileSchemaCache());
+
+  private class FileSchemaCache extends CacheLoader<SchemaKey, FileSystemSchema> {
+    @Override
+    public FileSystemSchema load(SchemaKey schemaKey) throws Exception {
+      return new FileSystemSchema(schemaKey.name, schemaKey.config);
+    }
+  }
+
+  private static class SchemaKey {
+    final String name;
+    final SchemaConfig config;
+
+    public SchemaKey(String name, SchemaConfig config ) {
+      super();
+      this.name = name;
+      this.config = config;
+    }
+
+    @Override
+    public int hashCode() {
+      final int prime = 31;
+      int result = 1;
+      result = prime * result + ((name == null) ? 0 : name.hashCode());
+      result = prime * result + ((config == null) ? 0 : config.hashCode());
+      return result;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+      if (this == obj) {
+        return true;
+      }
+      if (obj == null) {
+        return false;
+      }
+      if (getClass() != obj.getClass()) {
+        return false;
+      }
+      SchemaKey other = (SchemaKey) obj;
+      if (name == null) {
+        if (other.name != null) {
+          return false;
+        }
+      } else if (!name.equals(other.name)) {
+        return false;
+      }
+      if (name == null) {
+        if (other.name != null) {
+          return false;
+        }
+      } else if (!name.equals(other.name)) {
+        return false;
+      }
+      return true;
+    }
+  }
+
   public FileSystemSchemaFactory(String schemaName, List<WorkspaceSchemaFactory> factories) {
     super();
     this.schemaName = schemaName;
@@ -62,9 +131,15 @@ public class FileSystemSchemaFactory implements SchemaFactory{
 
   @Override
   public void registerSchemas(SchemaConfig schemaConfig, SchemaPlus parent) throws IOException {
-    FileSystemSchema schema = new FileSystemSchema(schemaName, schemaConfig);
-    SchemaPlus plusOfThis = parent.add(schema.getName(), schema);
-    schema.setPlus(plusOfThis);
+    try {
+      FileSystemSchema schema = fsSchemaCache.get(new SchemaKey(schemaName, schemaConfig));
+      SchemaPlus plusOfThis = parent.add(schema.getName(), schema);
+      schema.setPlus(plusOfThis);
+    }
+    catch(ExecutionException e) {
+      logger.error("Could not load FileSystemSchema from cache.", e);
+      throw new IOException(e);
+    }
   }
 
   public class FileSystemSchema extends AbstractSchema {
