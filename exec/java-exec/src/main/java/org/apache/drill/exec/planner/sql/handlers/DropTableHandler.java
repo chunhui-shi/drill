@@ -61,8 +61,8 @@ public class DropTableHandler extends DefaultSqlHandler {
     SqlDropTable dropTableNode = ((SqlDropTable) sqlNode);
 
     String originalTableName = dropTableNode.getName();
-    SchemaPlus defaultSchema = config.getConverter().getDefaultSchema();
     List<String> tableSchema = dropTableNode.getSchema();
+    SchemaPlus defaultSchema = config.getConverter().getExpandedDefaultSchema(tableSchema);
     DrillConfig drillConfig = context.getConfig();
     UserSession session = context.getSession();
 

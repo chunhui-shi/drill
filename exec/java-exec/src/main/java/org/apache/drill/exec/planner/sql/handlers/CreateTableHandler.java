@@ -80,9 +80,7 @@ public class CreateTableHandler extends DefaultSqlHandler {
     final RelNode newTblRelNode =
         SqlHandlerUtil.resolveNewTableRel(false, sqlCreateTable.getFieldNames(), validatedRowType, queryRelNode);
 
-
-    final AbstractSchema drillSchema =
-        SchemaUtilites.toMutableDrillSchema(config.getConverter().getExpandedDefaultSchema(sqlCreateTable.getSchemaPath()));
+    final AbstractSchema drillSchema = resolveSchema(sqlCreateTable);
 
     checkDuplicatedObjectExistence(drillSchema, originalTableName, context.getConfig(), context.getSession());
 
@@ -268,23 +266,30 @@ public class CreateTableHandler extends DefaultSqlHandler {
    * since temporary table are allowed to be created only in temporary workspace.
    *
    * @param sqlCreateTable create table call
-   * @param defaultSchema default schema
-   * @param config drill config
    * @return resolved schema
    * @throws UserException if attempted to create temporary table outside of temporary workspace
    */
-  private AbstractSchema resolveSchema(SqlCreateTable sqlCreateTable, SchemaPlus defaultSchema, DrillConfig config) {
+  private AbstractSchema resolveSchema(SqlCreateTable sqlCreateTable) {
+
+    SchemaPlus defaultSchema;
     if (sqlCreateTable.isTemporary() && sqlCreateTable.getSchemaPath().size() == 0) {
-      return SchemaUtilites.getTemporaryWorkspace(defaultSchema, config);
+      config.getConverter().getExpandedDefaultSchema(sqlCreateTable.getSchemaPath());
+      List<String> temporarySchemaPath = Lists.newArrayList(context.getConfig().
+          getString(ExecConstants.DEFAULT_TEMPORARY_WORKSPACE));
+      defaultSchema = config.getConverter().getExpandedDefaultSchema(temporarySchemaPath);
+      return SchemaUtilites.getTemporaryWorkspace(defaultSchema, context.getConfig());
     } else {
-      AbstractSchema resolvedSchema = SchemaUtilites.resolveToMutableDrillSchema(defaultSchema, sqlCreateTable.getSchemaPath());
-      boolean isTemporaryWorkspace = SchemaUtilites.isTemporaryWorkspace(resolvedSchema.getFullSchemaName(), config);
+      AbstractSchema resolvedSchema = SchemaUtilites.toMutableDrillSchema(
+          config.getConverter().getExpandedDefaultSchema(sqlCreateTable.getSchemaPath()));
+      boolean isTemporaryWorkspace = SchemaUtilites.isTemporaryWorkspace(
+          resolvedSchema.getFullSchemaName(), context.getConfig());
 
       if (sqlCreateTable.isTemporary() && !isTemporaryWorkspace) {
         throw UserException
             .validationError()
             .message(String.format("Temporary tables are not allowed to be created " +
-                "outside of default temporary workspace [%s].", config.getString(ExecConstants.DEFAULT_TEMPORARY_WORKSPACE)))
+                "outside of default temporary workspace [%s].",
+                context.getConfig().getString(ExecConstants.DEFAULT_TEMPORARY_WORKSPACE)))
             .build(logger);
       }
       return resolvedSchema;

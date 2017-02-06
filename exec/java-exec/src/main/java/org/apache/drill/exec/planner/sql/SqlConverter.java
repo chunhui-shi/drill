@@ -119,7 +119,7 @@ public class SqlConverter {
     this.isInnerQuery = false;
     this.typeFactory = new JavaTypeFactoryImpl(DRILL_TYPE_SYSTEM);
 
-    this.defaultSchema = context.getNewDefaultSchema();
+    this.defaultSchema = context.getPartialDefaultSchema();
     this.defaultSchema = defaultSchema == null? SimpleCalciteSchema.createRootSchema(false) : defaultSchema;
     this.rootSchema = rootSchema(this.defaultSchema);
     this.temporarySchema = context.getConfig().getString(ExecConstants.DEFAULT_TEMPORARY_WORKSPACE);
