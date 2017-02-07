@@ -60,6 +60,7 @@ public class DrillCatalogReader extends CalciteCatalogReader {
     assert rootSchema != defaultSchema;
     queryContext = qcontext;
     this.temporarySchema = temporarySchema;
+    this.allowTemporaryTables = true;
   }
 
   /** Disallow temporary tables presence in sql statement (ex: in view definitions) */
