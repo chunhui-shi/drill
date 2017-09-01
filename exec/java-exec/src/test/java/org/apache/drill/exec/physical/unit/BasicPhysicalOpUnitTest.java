@@ -21,8 +21,8 @@ import static org.apache.drill.TestBuilder.mapOf;
 
 import java.util.List;
 
-import org.apache.calcite.rel.RelFieldCollation;
-import org.apache.calcite.rel.core.JoinRelType;
+//import org.apache.calcite.rel.RelFieldCollation;
+//import org.apache.calcite.rel.core.JoinRelType;
 import org.apache.drill.exec.physical.MinorFragmentEndpoint;
 import org.apache.drill.exec.physical.config.ComplexToJson;
 import org.apache.drill.exec.physical.config.ExternalSort;
@@ -185,7 +185,7 @@ public class BasicPhysicalOpUnitTest extends PhysicalOpUnitTestBase {
         .baselineValues(5l, 5l)
         .go();
   }
-
+/*
   @Test
   public void testExternalSort() {
     ExternalSort sortConf = new ExternalSort(null,
@@ -240,7 +240,7 @@ public class BasicPhysicalOpUnitTest extends PhysicalOpUnitTestBase {
     }
     opTestBuilder.go();
   }
-
+*/
   // TODO - Failing with - org.apache.drill.exec.exception.OutOfMemoryException: Unable to allocate buffer of size 262144 (rounded from 147456) due to memory limit. Current allocation: 16422656
   // look in ExternalSortBatch for this JIRA number, changing this percentage of the allocator limit that is
   // the threshold for spilling (it worked with 0.65 for me) "fixed" the problem but hurt perf, will want

@@ -18,16 +18,10 @@
 
 package org.apache.drill.exec.physical.impl.join;
 
-import org.apache.calcite.rel.core.Join;
-import org.apache.calcite.rel.core.JoinRelType;
-import org.apache.calcite.rex.RexNode;
+
 import org.apache.drill.common.exceptions.UserException;
 import org.apache.drill.common.logical.data.JoinCondition;
-import org.apache.calcite.rel.RelNode;
-import org.apache.calcite.plan.RelOptUtil;
-import org.apache.calcite.plan.volcano.RelSubset;
 import org.apache.drill.exec.physical.impl.common.Comparator;
-import org.apache.drill.exec.planner.logical.DrillAggregateRel;
 import org.apache.drill.common.exceptions.DrillRuntimeException;
 import org.apache.drill.common.expression.ErrorCollector;
 import org.apache.drill.common.expression.ErrorCollectorImpl;
@@ -66,51 +60,6 @@ public class JoinUtils {
         .build(logger);
   }
 
-    /**
-     * Check if the given RelNode contains any Cartesian join.
-     * Return true if find one. Otherwise, return false.
-     *
-     * @param relNode     the RelNode to be inspected.
-     * @param leftKeys    a list used for the left input into the join which has
-     *                    equi-join keys. It can be empty or not (but not null),
-     *                    this method will clear this list before using it.
-     * @param rightKeys   a list used for the right input into the join which has
-     *                    equi-join keys. It can be empty or not (but not null),
-     *                    this method will clear this list before using it.
-     * @param filterNulls The join key positions for which null values will not
-     *                    match.
-     * @return            Return true if the given relNode contains Cartesian join.
-     *                    Otherwise, return false
-     */
-  public static boolean checkCartesianJoin(RelNode relNode, List<Integer> leftKeys, List<Integer> rightKeys, List<Boolean> filterNulls) {
-    if (relNode instanceof Join) {
-      leftKeys.clear();
-      rightKeys.clear();
-
-      Join joinRel = (Join) relNode;
-      RelNode left = joinRel.getLeft();
-      RelNode right = joinRel.getRight();
-
-      RexNode remaining = RelOptUtil.splitJoinCondition(left, right, joinRel.getCondition(), leftKeys, rightKeys, filterNulls);
-      if (joinRel.getJoinType() == JoinRelType.INNER) {
-        if (leftKeys.isEmpty() || rightKeys.isEmpty()) {
-          return true;
-        }
-      } else {
-        if (!remaining.isAlwaysTrue() || leftKeys.isEmpty() || rightKeys.isEmpty()) {
-          return true;
-        }
-      }
-    }
-
-    for (RelNode child : relNode.getInputs()) {
-      if (checkCartesianJoin(child, leftKeys, rightKeys, filterNulls)) {
-        return true;
-      }
-    }
-
-    return false;
-  }
 
   /**
    * Checks if implicit cast is allowed between the two input types of the join condition. Currently we allow
@@ -202,65 +151,6 @@ public class JoinUtils {
     }
   }
 
-  /**
-   * Utility method to check if a subquery (represented by its root RelNode) is provably scalar. Currently
-   * only aggregates with no group-by are considered scalar. In the future, this method should be generalized
-   * to include more cases and reconciled with Calcite's notion of scalar.
-   * @param root The root RelNode to be examined
-   * @return True if the root rel or its descendant is scalar, False otherwise
-   */
-  public static boolean isScalarSubquery(RelNode root) {
-    DrillAggregateRel agg = null;
-    RelNode currentrel = root;
-    while (agg == null && currentrel != null) {
-      if (currentrel instanceof DrillAggregateRel) {
-        agg = (DrillAggregateRel)currentrel;
-      } else if (currentrel instanceof RelSubset) {
-        currentrel = ((RelSubset)currentrel).getBest() ;
-      } else if (currentrel.getInputs().size() == 1) {
-        // If the rel is not an aggregate or RelSubset, but is a single-input rel (could be Project,
-        // Filter, Sort etc.), check its input
-        currentrel = currentrel.getInput(0);
-      } else {
-        break;
-      }
-    }
 
-    if (agg != null) {
-      if (agg.getGroupSet().isEmpty()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public static JoinCategory getJoinCategory(RelNode left, RelNode right, RexNode condition,
-      List<Integer> leftKeys, List<Integer> rightKeys, List<Boolean> filterNulls) {
-    if (condition.isAlwaysTrue()) {
-      return JoinCategory.CARTESIAN;
-    }
-    leftKeys.clear();
-    rightKeys.clear();
-    filterNulls.clear();
-    RexNode remaining = RelOptUtil.splitJoinCondition(left, right, condition, leftKeys, rightKeys, filterNulls);
-
-    if (!remaining.isAlwaysTrue() || (leftKeys.size() == 0 || rightKeys.size() == 0) ) {
-      // for practical purposes these cases could be treated as inequality
-      return JoinCategory.INEQUALITY;
-    }
-    return JoinCategory.EQUALITY;
-  }
-
-  /**
-   * Utility method to check if a any of input RelNodes is provably scalar.
-   *
-   * @param left  the RelNode to be inspected.
-   * @param right the RelNode to be inspected.
-   * @return      Return true if any of the given RelNodes is provably scalar.
-   *              Otherwise, return false
-   */
-  public static boolean hasScalarSubqueryInput(RelNode left, RelNode right) {
-    return isScalarSubquery(left) || isScalarSubquery(right);
-  }
 
 }
